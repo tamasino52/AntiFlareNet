@@ -16,16 +16,14 @@ import pprint
 import logging
 import json
 
-import _init_paths
+from utils.utils import save_checkpoint, load_checkpoint, load_model_state, create_logger, load_backbone_panoptic
+from . import _init_paths
 import dataset
-import models
+from models import AntiFlareNet
 
 from core.config import config
-from core.config import update_config
-from core.function import train_3d, validate_3d
-from utils.utils import create_logger
-from utils.utils import save_checkpoint, load_checkpoint, load_model_state
-from utils.utils import load_backbone_panoptic
+from core.function import train, varidate
+from dataset.flare_real import RealFlareDataset
 
 
 def parse_args():
@@ -34,7 +32,7 @@ def parse_args():
         '--cfg', help='experiment configure file name', required=True, type=str)
 
     args, rest = parser.parse_known_args()
-    update_config(args.cfg)
+    #update_config(args.cfg)
 
     return args
 
@@ -56,22 +54,23 @@ def get_optimizer(model):
 
 def main():
     args = parse_args()
-    logger, final_output_dir, tb_log_dir = create_logger(
-        config, args.cfg, 'train')
-
+    # 학습 로그 처리
+    logger, final_output_dir, tb_log_dir = create_logger(config, args.cfg, 'train')
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
 
-    gpus = [int(i) for i in config.GPUS.split(',')]
+    # 데이터 로드
     print('=> Loading data ..')
-    normalize = transforms.Normalize(
-        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    train_dataset = eval('dataset.' + config.DATASET.TRAIN_DATASET)(
-        config, config.DATASET.TRAIN_SUBSET, True,
-        transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ]))
+    if config.DATA_CLASS is 'real':
+        train_dataset = RealFlareDataset(config, is_train=True)
+    elif config.DATA_CLASS is 'synthetic':
+        raise NotImplementedError
+    elif config.DATA_CLASS is 'mix':
+        raise NotImplementedError
+    else:
+        assert "Unknown data class error. Set configs to 'real' or 'synthetic' or 'mix'."
+
+    gpus = [int(i) for i in config.GPUS.split(',')]
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -80,12 +79,7 @@ def main():
         num_workers=config.WORKERS,
         pin_memory=True)
 
-    test_dataset = eval('dataset.' + config.DATASET.TEST_DATASET)(
-        config, config.DATASET.TEST_SUBSET, False,
-        transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ]))
+    test_dataset = RealFlareDataset(config, is_train=False)
 
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
@@ -94,17 +88,21 @@ def main():
         num_workers=config.WORKERS,
         pin_memory=True)
 
+    # Cudnn 설정
     cudnn.benchmark = config.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = config.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = config.CUDNN.ENABLED
     torch.autograd.set_detect_anomaly(True)
 
+    # 모델 생성
     print('=> Constructing models ..')
-    model = eval('models.' + config.MODEL + '.get_multi_person_pose_net')(
-        config, is_train=True)
+    model = AntiFlareNet(config, is_train=True)
+
+    # 모델 병렬화
     with torch.no_grad():
         model = torch.nn.DataParallel(model, device_ids=gpus).cuda()
 
+    # 옵티마이저 설정
     model, optimizer = get_optimizer(model)
 
     start_epoch = config.TRAIN.BEGIN_EPOCH
@@ -112,7 +110,8 @@ def main():
 
     best_precision = 0
     if config.NETWORK.PRETRAINED_BACKBONE:
-        model = load_backbone_panoptic(model, config.NETWORK.PRETRAINED_BACKBONE)
+        # TODO
+        pass
     if config.TRAIN.RESUME:
         start_epoch, model, optimizer, best_precision = load_checkpoint(model, optimizer, final_output_dir)
 
@@ -127,8 +126,8 @@ def main():
         print('Epoch: {}'.format(epoch))
 
         # lr_scheduler.step()
-        train_3d(config, model, optimizer, train_loader, epoch, final_output_dir, writer_dict)
-        precision = validate_3d(config, model, test_loader, final_output_dir)
+        train(config, model, optimizer, train_loader, epoch, final_output_dir, writer_dict)
+        precision = validate(config, model, test_loader, final_output_dir)
 
         if precision > best_precision:
             best_precision = precision
@@ -137,6 +136,7 @@ def main():
             best_model = False
 
         logger.info('=> saving checkpoint to {} (Best: {})'.format(final_output_dir, best_model))
+
         save_checkpoint({
             'epoch': epoch + 1,
             'state_dict': model.module.state_dict(),
