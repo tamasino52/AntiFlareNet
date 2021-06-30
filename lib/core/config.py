@@ -28,6 +28,9 @@ config.TRAIN_LABEL_DIR = 'train_label_img'
 config.TEST_INPUT_DIR = 'test_input_img'
 config.TEST_OUTPUT_DIR = 'sample_submission'
 
+# Dataset setting
+config.AUGMENTATION_STRIDE = 128
+
 # Training parameter
 config.DATA_CLASS = 'real'
 config.TRAIN.BATCH_SIZE = 32
