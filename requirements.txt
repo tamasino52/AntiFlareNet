@@ -1,0 +1,8 @@
+torch
+torchvision
+matplotlib
+tqdm
+tensorboardX
+opencv-python
+yaml
+easydict

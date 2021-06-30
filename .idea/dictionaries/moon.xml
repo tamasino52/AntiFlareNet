@@ -2,6 +2,7 @@
   <dictionary name="moon">
     <words>
       <w>cudnn</w>
+      <w>dataset</w>
       <w>optim</w>
     </words>
   </dictionary>

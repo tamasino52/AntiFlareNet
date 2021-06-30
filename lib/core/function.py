@@ -14,8 +14,7 @@ from utils.vis import save_pred_images
 logger = logging.getLogger(__name__)
 
 
-def train(config, model, optimizer, loader, epoch, output_dir, writer_dict, device=torch.device('cuda'),
-          dtype=torch.float):
+def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()

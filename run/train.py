@@ -15,45 +15,41 @@ import os
 import pprint
 import logging
 import json
+import torchvision
 
-from utils.utils import save_checkpoint, load_checkpoint, load_model_state, create_logger, load_backbone_panoptic
-from . import _init_paths
+from utils.utils import save_checkpoint, load_checkpoint, create_logger
+import _init_paths
 import dataset
 from models import AntiFlareNet
 
-from core.config import config
-from core.function import train, varidate
+from core.config import config, update_config
+from core.function import train, validate
 from dataset.flare_real import RealFlareDataset
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train network')
     parser.add_argument(
-        '--cfg', help='experiment configure file name', required=True, type=str)
+        '--cfg', help='experiment configure file name', required=False, type=str)
 
     args, rest = parser.parse_known_args()
-    #update_config(args.cfg)
+    if args.cfg is not None:
+        update_config(args.cfg)
 
     return args
 
 
 def get_optimizer(model):
     lr = config.TRAIN.LR
-    if model.module.backbone is not None:
-        for params in model.module.backbone.parameters():
-            params.requires_grad = False   # If you want to train the whole model jointly, set it to be True.
-    for params in model.module.root_net.parameters():
-        params.requires_grad = True
-    for params in model.module.pose_net.parameters():
+    for params in model.module.parameters():
         params.requires_grad = True
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.module.parameters()), lr=lr)
-    # optimizer = optim.Adam(model.module.parameters(), lr=lr)
-
     return model, optimizer
 
 
 def main():
     args = parse_args()
+
     # 학습 로그 처리
     logger, final_output_dir, tb_log_dir = create_logger(config, args.cfg, 'train')
     logger.info(pprint.pformat(args))
@@ -61,14 +57,16 @@ def main():
 
     # 데이터 로드
     print('=> Loading data ..')
-    if config.DATA_CLASS is 'real':
+    train_dataset = None
+    if config.DATA_CLASS == 'real':
         train_dataset = RealFlareDataset(config, is_train=True)
-    elif config.DATA_CLASS is 'synthetic':
+    elif config.DATA_CLASS == 'synthetic':
+        # TODO
         raise NotImplementedError
-    elif config.DATA_CLASS is 'mix':
+    elif config.DATA_CLASS == 'mix':
         raise NotImplementedError
     else:
-        assert "Unknown data class error. Set configs to 'real' or 'synthetic' or 'mix'."
+        assert "Unknown data class error. Set DATA_CLASS of configs to 'real' or 'synthetic' or 'mix'."
 
     gpus = [int(i) for i in config.GPUS.split(',')]
 
@@ -87,6 +85,8 @@ def main():
         shuffle=False,
         num_workers=config.WORKERS,
         pin_memory=True)
+
+    logger.info('=> train dataset : {}, test dataset : {}'.format(train_loader.__len__(), test_loader.__len__()))
 
     # Cudnn 설정
     cudnn.benchmark = config.CUDNN.BENCHMARK
@@ -109,9 +109,7 @@ def main():
     end_epoch = config.TRAIN.END_EPOCH
 
     best_precision = 0
-    if config.NETWORK.PRETRAINED_BACKBONE:
-        # TODO
-        pass
+
     if config.TRAIN.RESUME:
         start_epoch, model, optimizer, best_precision = load_checkpoint(model, optimizer, final_output_dir)
 
@@ -144,8 +142,7 @@ def main():
             'optimizer': optimizer.state_dict(),
         }, best_model, final_output_dir)
 
-    final_model_state_file = os.path.join(final_output_dir,
-                                          'final_state.pth.tar')
+    final_model_state_file = os.path.join(final_output_dir, 'final_state.pth.tar')
     logger.info('saving final model state to {}'.format(
         final_model_state_file))
     torch.save(model.module.state_dict(), final_model_state_file)
