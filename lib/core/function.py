@@ -21,9 +21,6 @@ def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
 
     model.train()
 
-    if model.module.backbone is not None:
-        model.module.backbone.eval()
-
     end = time.time()
     for i, (input_img, target_img, meta) in enumerate(loader):
         data_time.update(time.time() - end)

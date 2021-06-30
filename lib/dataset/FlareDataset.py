@@ -8,8 +8,8 @@ from torch.utils.data import Dataset
 import os
 import os.path as osp
 import pandas as pd
-import glob
-
+from glob import glob
+import pickle
 logger = logging.getLogger(__name__)
 
 
@@ -50,9 +50,11 @@ class FlareDataset(Dataset):
 
     def __getitem__(self, idx):
         db_rec = copy.deepcopy(self.db[idx])
-
-        input_numpy = glob(db_rec['image'])
-        label_numpy = glob(db_rec['label'])
+        # TODO
+        input_numpy = np.load(db_rec['image'])
+        label_numpy = np.load(db_rec['label'])
+        input_numpy.close()
+        label_numpy.close()
 
         if input_numpy is None or label_numpy is None:
             logger.error('=> fail to read {} and {}'.format(db_rec['image'], db_rec['label']))

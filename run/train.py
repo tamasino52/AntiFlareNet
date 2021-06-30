@@ -20,7 +20,7 @@ import torchvision
 from utils.utils import save_checkpoint, load_checkpoint, create_logger
 import _init_paths
 import dataset
-from models import AntiFlareNet
+from models.AntiFlareNet import AntiFlareNet
 
 from core.config import config, update_config
 from core.function import train, validate
@@ -86,7 +86,7 @@ def main():
         num_workers=config.WORKERS,
         pin_memory=True)
 
-    logger.info('=> train dataset : {}, test dataset : {}'.format(train_loader.__len__(), test_loader.__len__()))
+    logger.info('=> dataloader length : train({}), test({})'.format(train_loader.__len__(), test_loader.__len__()))
 
     # Cudnn 설정
     cudnn.benchmark = config.CUDNN.BENCHMARK
