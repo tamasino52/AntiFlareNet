@@ -69,22 +69,17 @@ class RealFlareDataset(FlareDataset):
                 dim = (input_numpy.shape[1], input_numpy.shape[0])
                 label_numpy = cv2.resize(label_numpy, dim, interpolation = cv2.INTER_AREA)
 
+            input_piece_path = f'{input_path}/id_i{num}.npy'
+            label_piece_path = f'{label_path}/id_l{num}.npy'
+
+            if not osp.exists(input_piece_path):
+                np.save(input_piece_path, input_numpy)
+            if not osp.exists(label_piece_path):
+                np.save(label_piece_path, label_numpy)
+
             # 영상을 Stride 단위로 쪼개서 npy 파일로 저장
             for top in range(0, input_numpy.shape[0], self.stride):
                 for left in range(0, input_numpy.shape[1], self.stride):
-                    input_piece_path = f'{input_path}/id{num}_t{top}_l{left}.npy'
-                    if not osp.exists(input_piece_path):
-                        piece = np.zeros([self.img_size, self.img_size, 3], np.uint8)
-                        temp = input_numpy[top:top + self.img_size, left:left + self.img_size, :]
-                        piece[:temp.shape[0], :temp.shape[1], :] = temp
-                        np.save(input_piece_path, piece)
-
-                    label_piece_path = f'{label_path}/id{num}_t{top}_l{left}.npy'
-                    if not osp.exists(label_piece_path):
-                        piece = np.zeros([self.img_size, self.img_size, 3], np.uint8)
-                        temp = label_numpy[top:top + self.img_size, left:left + self.img_size, :]
-                        piece[:temp.shape[0], :temp.shape[1], :] = temp
-                        np.save(label_piece_path, piece)
 
                     # 메타데이터 DB 저장
                     meta = {
@@ -99,8 +94,11 @@ class RealFlareDataset(FlareDataset):
                     }
 
                     db.append({
+                        'id': num,
                         'image': input_piece_path,
                         'label': label_piece_path,
+                        'location': (top, left),
+                        'stride': self.stride,
                         'meta': meta
                     })
 

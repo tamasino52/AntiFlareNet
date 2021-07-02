@@ -48,9 +48,18 @@ class FlareDataset(Dataset):
 
     def __getitem__(self, idx):
         db_rec = copy.deepcopy(self.db[idx])
-        # TODO
-        input_numpy = np.load(db_rec['image'])
-        label_numpy = np.load(db_rec['label'])
+
+        full_input_numpy = np.load(db_rec['image'])
+        full_label_numpy = np.load(db_rec['label'])
+
+        top, left = db_rec['location']
+        input_numpy = np.zeros([self.img_size, self.img_size, 3], np.uint8)
+        temp = full_input_numpy[top:top + self.img_size, left:left + self.img_size, :]
+        input_numpy[:temp.shape[0], :temp.shape[1], :] = temp
+
+        label_numpy = np.zeros([self.img_size, self.img_size, 3], np.uint8)
+        temp = full_label_numpy[top:top + self.img_size, left:left + self.img_size, :]
+        label_numpy[:temp.shape[0], :temp.shape[1], :] = temp
 
         if input_numpy is None or label_numpy is None:
             logger.error('=> fail to read {} and {}'.format(db_rec['image'], db_rec['label']))
