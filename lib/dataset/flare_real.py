@@ -63,6 +63,12 @@ class RealFlareDataset(FlareDataset):
             input_numpy = cv2.cvtColor(input_numpy, cv2.COLOR_BGR2RGB)
             label_numpy = cv2.cvtColor(label_numpy, cv2.COLOR_BGR2RGB)
 
+            # 입력 영상과 타겟 영상의 크기가 다른 경우 타겟 영상의 크기를 입력 영상 크기로 치환
+            if not input_numpy.shape[0] == label_numpy.shape[0] and input_numpy.shape[1] == label_numpy.shape[1]:
+                logger.info('Warnning : label image size is modified to input image')
+                dim = (input_numpy.shape[1], input_numpy.shape[0])
+                label_numpy = cv2.resize(label_numpy, dim, interpolation = cv2.INTER_AREA)
+
             # 영상을 Stride 단위로 쪼개서 npy 파일로 저장
             for top in range(0, input_numpy.shape[0], self.stride):
                 for left in range(0, input_numpy.shape[1], self.stride):

@@ -8,10 +8,8 @@ from torch.utils.data import Dataset
 import os
 import os.path as osp
 import pandas as pd
-from glob import glob
-import pickle
 logger = logging.getLogger(__name__)
-
+import math
 
 class FlareDataset(Dataset):
     def __init__(self, cfg, is_train):

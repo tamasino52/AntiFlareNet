@@ -18,14 +18,15 @@ class AntiFlareNet(nn.Module):
 
     def forward(self, x, y=None):
         p = self.generator(x)
-        if not self.is_train:
-            return p
+
         #d = self.discriminator(p, y)
 
         # Pixel-wise Loss
-        loss_pixel = self.criterion_pixelwise(p, y)
-
-        return p, loss_pixel
+        if y is not None:
+            loss_pixel = self.criterion_pixelwise(p, y)
+            return p, loss_pixel
+        else:
+            return p
 
     def _initialize_weights(self):
         for m in self.modules():

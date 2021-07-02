@@ -7,6 +7,7 @@ import logging
 import os
 import copy
 
+import math
 import torch
 import numpy as np
 from utils.vis import save_pred_images
@@ -72,7 +73,7 @@ def validate(config, model, loader, output_dir):
     data_time = AverageMeter()
     model.eval()
 
-    preds = []
+    psnr_list, mse_list = [], []
     with torch.no_grad():
         end = time.time()
         for i, (input_img, target_img, meta) in enumerate(loader):
@@ -80,9 +81,18 @@ def validate(config, model, loader, output_dir):
 
             pred_img = model(input_img)
 
-            pred_img = pred_img.detach().cpu().numpy()
-            for b in range(pred_img.shape[0]):
-                pred_img.append(pred_img[b])
+            # PSNR 값 계산
+            pred = pred_img.detach().cpu().numpy()
+            target = target_img.detach().cpu().numpy()
+
+            for b in range(pred.shape[0]):
+                mse = np.mean((pred[b] - target[b]) ** 2)
+                mse_list.append(mse)
+                if mse <= np.finfo(float).eps:
+                    psnr_list.append(100.0)
+                else:
+                    psnr = 20 * math.log10(1.0 / math.sqrt(mse))
+                    psnr_list.append(psnr)
 
             batch_time.update(time.time() - end)
             end = time.time()
@@ -99,31 +109,20 @@ def validate(config, model, loader, output_dir):
                 logger.info(msg)
 
                 prefix = '{}_{:08}'.format(os.path.join(output_dir, 'validation'), i)
-                #TODO
                 save_pred_images(config, input_img, pred_img, target_img, prefix)
 
-    #TODO
-    metric = None
-    if 'panoptic' in config.DATASET.TEST_DATASET:
-        aps, _, mpjpe, recall = loader.dataset.evaluate(preds)
-        msg = 'ap@25: {aps_25:.4f}\tap@50: {aps_50:.4f}\tap@75: {aps_75:.4f}\t' \
-              'ap@100: {aps_100:.4f}\tap@125: {aps_125:.4f}\tap@150: {aps_150:.4f}\t' \
-              'recall@500mm: {recall:.4f}\tmpjpe@500mm: {mpjpe:.3f}'.format(
-            aps_25=aps[0], aps_50=aps[1], aps_75=aps[2], aps_100=aps[3],
-            aps_125=aps[4], aps_150=aps[5], recall=recall, mpjpe=mpjpe
-        )
-        logger.info(msg)
-        metric = np.mean(aps)
-    elif 'campus' in config.DATASET.TEST_DATASET or 'shelf' in config.DATASET.TEST_DATASET:
-        actor_pcp, avg_pcp, _, recall = loader.dataset.evaluate(preds)
-        msg = '     | Actor 1 | Actor 2 | Actor 3 | Average | \n' \
-              ' PCP |  {pcp_1:.2f}  |  {pcp_2:.2f}  |  {pcp_3:.2f}  |  {pcp_avg:.2f}  |\t Recall@500mm: {recall:.4f}'.format(
-            pcp_1=actor_pcp[0] * 100, pcp_2=actor_pcp[1] * 100, pcp_3=actor_pcp[2] * 100, pcp_avg=avg_pcp * 100,
-            recall=recall)
-        logger.info(msg)
-        metric = np.mean(avg_pcp)
+    # 종합 PSNR 평가
+    mean_psnr = sum(psnr_list, 0.0) / len(psnr_list)
+    mean_mse = sum(mse_list, 0.0) / len(mse_list)
+    max_psnr = max(psnr_list)
+    min_psnr = min(psnr_list)
 
-    return metric
+    msg = 'psnr: {mean_psnr:.4f}\tmse: {mean_mse:.4f}\tmax_psnr: {max_psnr:.4f}\tmin_psnr: {min_psnr:.4f}'.format(
+        mean_psnr=mean_psnr, mean_mse=mean_mse, max_psnr=max_psnr, min_psnr=min_psnr,
+    )
+    logger.info(msg)
+
+    return mean_psnr
 
 
 class AverageMeter(object):
