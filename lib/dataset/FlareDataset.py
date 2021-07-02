@@ -53,8 +53,6 @@ class FlareDataset(Dataset):
         # TODO
         input_numpy = np.load(db_rec['image'])
         label_numpy = np.load(db_rec['label'])
-        input_numpy.close()
-        label_numpy.close()
 
         if input_numpy is None or label_numpy is None:
             logger.error('=> fail to read {} and {}'.format(db_rec['image'], db_rec['label']))
@@ -74,7 +72,7 @@ class FlareDataset(Dataset):
         input_numpy = input_numpy.astype(np.float32)/255
         label_numpy = label_numpy.astype(np.float32)/255
 
-        input_torch = torch.from_numpy(input_numpy)
-        label_torch = torch.from_numpy(label_numpy)
+        input_torch = torch.from_numpy(input_numpy).permute(2, 0, 1).contiguous()
+        label_torch = torch.from_numpy(label_numpy).permute(2, 0, 1).contiguous()
 
         return input_torch, label_torch, db_rec['meta']

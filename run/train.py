@@ -17,10 +17,10 @@ import logging
 import json
 import torchvision
 
-from utils.utils import save_checkpoint, load_checkpoint, create_logger
 import _init_paths
 import dataset
 from models.AntiFlareNet import AntiFlareNet
+from utils.utils import save_checkpoint, load_checkpoint, create_logger
 
 from core.config import config, update_config
 from core.function import train, validate

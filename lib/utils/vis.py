@@ -9,8 +9,23 @@ matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 
 
+def imwrite(filename, img, params=None):
+    try:
+        ext = os.path.splitext(filename)[1]
+        result, n = cv2.imencode(ext, img, params)
+        if result:
+            with open(filename, mode='w+b') as f:
+                n.tofile(f)
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(e)
+        return False
+
+
 def save_pred_images(config, input_img, pred_img, target_img, prefix, normalize=False):
-    file_name = prefix + ".png"
+    file_name = prefix + ".jpg"
 
     if normalize:
         input_img = input_img.clone()
@@ -29,8 +44,8 @@ def save_pred_images(config, input_img, pred_img, target_img, prefix, normalize=
         target_img.add_(-min).div_(max - min + 1e-5)
 
     batch_size = input_img.size(0)
-    height = input_img.size(1)
-    width = input_img.size(2)
+    height = input_img.size(2)
+    width = input_img.size(3)
 
     grid_image = np.zeros((batch_size * height, 3 * width, 3), dtype=np.uint8)
 
@@ -41,13 +56,13 @@ def save_pred_images(config, input_img, pred_img, target_img, prefix, normalize=
             .permute(1, 2, 0) \
             .cpu().numpy()
 
-        pred_np = input_img[i].mul(255) \
+        pred_np = pred_img[i].mul(255) \
             .clamp(0, 255) \
             .byte() \
             .permute(1, 2, 0) \
             .cpu().numpy()
 
-        target_np = input_img[i].mul(255) \
+        target_np = target_img[i].mul(255) \
             .clamp(0, 255) \
             .byte() \
             .permute(1, 2, 0) \
@@ -68,4 +83,4 @@ def save_pred_images(config, input_img, pred_img, target_img, prefix, normalize=
         width_end = width * 3
         grid_image[height_begin:height_end, width_begin:width_end, :] = target_np
 
-    cv2.imwrite(file_name, grid_image)
+    imwrite(file_name, grid_image)

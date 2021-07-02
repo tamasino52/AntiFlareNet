@@ -23,10 +23,11 @@ def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
 
     end = time.time()
     for i, (input_img, target_img, meta) in enumerate(loader):
+
         data_time.update(time.time() - end)
         with torch.autograd.set_detect_anomaly(True):
             # 예측
-            pred_img, loss = model(input_img=input_img, target_img=target_img)
+            pred_img, loss = model(input_img, target_img)
 
             # 예측값과 타겟 간의 손실 계산
             losses.update(loss.item())
@@ -64,8 +65,9 @@ def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
             save_pred_images(config, input_img, pred_img, target_img, prefix)
 
 
-# TODO
 def validate(config, model, loader, output_dir):
+    # TODO
+
     batch_time = AverageMeter()
     data_time = AverageMeter()
     model.eval()
@@ -73,17 +75,14 @@ def validate(config, model, loader, output_dir):
     preds = []
     with torch.no_grad():
         end = time.time()
-        for i, (inputs, targets_2d, weights_2d, targets_3d, meta, input_heatmap) in enumerate(loader):
+        for i, (input_img, target_img, meta) in enumerate(loader):
             data_time.update(time.time() - end)
-            if 'panoptic' in config.DATASET.TEST_DATASET:
-                pred, heatmaps, grid_centers, _, _, _ = model(views=inputs, meta=meta, targets_2d=targets_2d,
-                                                              weights_2d=weights_2d, targets_3d=targets_3d[0])
-            elif 'campus' in config.DATASET.TEST_DATASET or 'shelf' in config.DATASET.TEST_DATASET:
-                pred, heatmaps, grid_centers, _, _, _ = model(meta=meta, targets_3d=targets_3d[0],
-                                                              input_heatmaps=input_heatmap)
-            pred = pred.detach().cpu().numpy()
-            for b in range(pred.shape[0]):
-                preds.append(pred[b])
+
+            pred_img = model(input_img)
+
+            pred_img = pred_img.detach().cpu().numpy()
+            for b in range(pred_img.shape[0]):
+                pred_img.append(pred_img[b])
 
             batch_time.update(time.time() - end)
             end = time.time()
@@ -95,21 +94,15 @@ def validate(config, model, loader, output_dir):
                       'Data: {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
                       'Memory {memory:.1f}'.format(
                     i, len(loader), batch_time=batch_time,
-                    speed=len(inputs) * inputs[0].size(0) / batch_time.val,
+                    speed=len(input_img) * input_img[0].size(0) / batch_time.val,
                     data_time=data_time, memory=gpu_memory_usage)
                 logger.info(msg)
 
-                for k in range(len(inputs)):
-                    view_name = 'view_{}'.format(k + 1)
-                    prefix = '{}_{:08}_{}'.format(
-                        os.path.join(output_dir, 'validation'), i, view_name)
-                    save_debug_images_multi(config, inputs[k], meta[k], targets_2d[k], heatmaps[k], prefix)
-                prefix2 = '{}_{:08}'.format(
-                    os.path.join(output_dir, 'validation'), i)
+                prefix = '{}_{:08}'.format(os.path.join(output_dir, 'validation'), i)
+                #TODO
+                save_pred_images(config, input_img, pred_img, target_img, prefix)
 
-                save_debug_3d_cubes(config, meta[0], grid_centers, prefix2)
-                save_debug_3d_images(config, meta[0], pred, prefix2)
-
+    #TODO
     metric = None
     if 'panoptic' in config.DATASET.TEST_DATASET:
         aps, _, mpjpe, recall = loader.dataset.evaluate(preds)

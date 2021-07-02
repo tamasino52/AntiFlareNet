@@ -25,7 +25,7 @@ class AntiFlareNet(nn.Module):
         # Pixel-wise Loss
         loss_pixel = self.criterion_pixelwise(p, y)
 
-        return x, loss_pixel
+        return p, loss_pixel
 
     def _initialize_weights(self):
         for m in self.modules():

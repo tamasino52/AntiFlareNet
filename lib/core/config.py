@@ -69,7 +69,6 @@ config.DEBUG = edict()
 config.DEBUG.DEBUG = True
 config.DEBUG.SAVE_BATCH_IMAGES = True
 
-
 def _update_dict(k, v):
     for vk, vv in v.items():
         if vk in config[k]:
