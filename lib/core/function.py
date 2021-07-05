@@ -10,8 +10,8 @@ import copy
 import math
 import torch
 import numpy as np
-from utils.vis import save_pred_images
-
+from utils.vis import save_pred_batch_images, save_pred_image
+from core.overlap import PatchOverlap
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +42,8 @@ def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
             # 연산 시간 계산
             batch_time.update(time.time() - end)
             end = time.time()
-
+        if i == 1:
+            return
         if i % config.PRINT_FREQ == 0:
             gpu_memory_usage = torch.cuda.memory_allocated(0)
             msg = 'Epoch: [{0}][{1}/{2}]\t' \
@@ -63,7 +64,7 @@ def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
             writer_dict['train_global_steps'] = global_steps + 1
 
             prefix = '{}_{:08}'.format(os.path.join(output_dir, 'train'), i)
-            save_pred_images(config, input_img, pred_img, target_img, prefix)
+            save_pred_batch_images(input_img, pred_img, target_img, prefix)
 
 
 def validate(config, model, loader, output_dir):
@@ -73,7 +74,9 @@ def validate(config, model, loader, output_dir):
     data_time = AverageMeter()
     model.eval()
 
+    first = True
     psnr_list, mse_list = [], []
+    patch_overlap = PatchOverlap(config)
     with torch.no_grad():
         end = time.time()
         for i, (input_img, target_img, meta) in enumerate(loader):
@@ -86,6 +89,34 @@ def validate(config, model, loader, output_dir):
             target = target_img.detach().cpu().numpy()
 
             for b in range(pred.shape[0]):
+                # Patch Merging
+                if first:
+                    patch_overlap.initialize(meta["id"][b], meta["height"][b], meta["width"][b])
+                    first = False
+                if patch_overlap.id == meta["id"][b]:
+                    patch_overlap.append_patch(meta["id"][b], pred[b], (meta["location"][0][b], meta["location"][1][b]))
+                else:
+                    canvas = patch_overlap.get_canvas()
+                    full_input_numpy = np.load(meta['image'][b])
+                    full_label_numpy = np.load(meta['label'][b])
+
+                    pred_np = canvas.mul(255) \
+                        .clamp(0, 255) \
+                        .byte() \
+                        .permute(1, 2, 0) \
+                        .cpu().numpy()
+
+                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'full_valid_pred'), i)
+                    save_pred_image(config, pred_np, prefix)
+
+                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'full_input_pred'), i)
+                    save_pred_image(config, full_input_numpy, prefix)
+
+                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'full_label_pred'), i)
+                    save_pred_image(config, full_label_numpy, prefix)
+
+                    patch_overlap.initialize(meta["id"][b], meta["height"][b], meta["width"][b])
+
                 mse = np.mean((pred[b] - target[b]) ** 2)
                 mse_list.append(mse)
                 if mse <= np.finfo(float).eps:
@@ -109,7 +140,7 @@ def validate(config, model, loader, output_dir):
                 logger.info(msg)
 
                 prefix = '{}_{:08}'.format(os.path.join(output_dir, 'validation'), i)
-                save_pred_images(config, input_img, pred_img, target_img, prefix)
+                save_pred_batch_images(input_img, pred_img, target_img, prefix)
 
     # 종합 PSNR 평가
     mean_psnr = sum(psnr_list, 0.0) / len(psnr_list)

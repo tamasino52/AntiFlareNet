@@ -1,12 +1,6 @@
-import math
 import numpy as np
-import torchvision
 import cv2
 import os
-import matplotlib
-
-matplotlib.use('Agg')
-from matplotlib import pyplot as plt
 
 
 def imwrite(filename, img, params=None):
@@ -24,7 +18,7 @@ def imwrite(filename, img, params=None):
         return False
 
 
-def save_pred_images(config, input_img, pred_img, target_img, prefix, normalize=False):
+def save_pred_batch_images(input_img, pred_img, target_img, prefix, normalize=False):
     file_name = prefix + ".jpg"
 
     if normalize:
@@ -84,3 +78,16 @@ def save_pred_images(config, input_img, pred_img, target_img, prefix, normalize=
         grid_image[height_begin:height_end, width_begin:width_end, :] = target_np
 
     imwrite(file_name, grid_image)
+
+
+def save_pred_image(config, img, prefix, normalize=False):
+    file_name = prefix + ".jpg"
+    stride = config.AUGMENTATION_STRIDE
+    img = img[stride:, :-stride, :]
+    if normalize:
+        img = img.clone()
+        min = float(img.min())
+        max = float(img.max())
+        img.add_(-min).div_(max - min + 1e-5)
+
+    imwrite(file_name, img)

@@ -11,6 +11,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 import math
 
+
 class FlareDataset(Dataset):
     def __init__(self, cfg, is_train):
         self.cfg = cfg

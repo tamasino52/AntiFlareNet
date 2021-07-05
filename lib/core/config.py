@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import yaml
-import numpy as np
 from easydict import EasyDict as edict
 
 config = edict()
@@ -34,7 +33,7 @@ config.CUDNN.DETERMINISTIC = False
 config.CUDNN.ENABLED = True
 
 # Dataset setting
-config.AUGMENTATION_STRIDE = 256
+config.AUGMENTATION_STRIDE = 128
 config.DATA_CLASS = 'real'
 config.RANDOM_FLIP = True
 config.VALIDATION_RATIO = 0.2

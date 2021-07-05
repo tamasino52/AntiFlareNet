@@ -4,5 +4,6 @@ matplotlib
 tqdm
 tensorboardX
 opencv-python
-yaml
+pyyaml
 easydict
+scipy

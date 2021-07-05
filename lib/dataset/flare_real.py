@@ -24,7 +24,7 @@ class RealFlareDataset(FlareDataset):
         self.img_size = cfg.IMAGE_SIZE
         self.stride = cfg.AUGMENTATION_STRIDE
         self.db_path = None
-
+        self.padding = ((self.stride, 0), (self.stride, 0), (0, 0))
         if is_train:
             self.db_path = cfg.DATA_DIR + '/train_db.pkl'
         else:
@@ -68,6 +68,10 @@ class RealFlareDataset(FlareDataset):
                 logger.info('Warnning : label image size is modified to input image')
                 dim = (input_numpy.shape[1], input_numpy.shape[0])
                 label_numpy = cv2.resize(label_numpy, dim, interpolation = cv2.INTER_AREA)
+            height, width = input_numpy.shape[1], input_numpy.shape[0]
+
+            np.pad(input_numpy, self.padding, 'constant', constant_values=0)
+            np.pad(label_numpy, self.padding, 'constant', constant_values=0)
 
             input_piece_path = f'{input_path}/id_i{num}.npy'
             label_piece_path = f'{label_path}/id_l{num}.npy'
@@ -77,11 +81,9 @@ class RealFlareDataset(FlareDataset):
             if not osp.exists(label_piece_path):
                 np.save(label_piece_path, label_numpy)
 
-            # 영상을 Stride 단위로 쪼개서 npy 파일로 저장
-            for top in range(0, input_numpy.shape[0], self.stride):
-                for left in range(0, input_numpy.shape[1], self.stride):
-
-                    # 메타데이터 DB 저장
+            # 영상을 Stride 단위로 쪼개서 각 패치 정보를 DB에 저장
+            for top in range(0, input_numpy.shape[1], self.stride):
+                for left in range(0, input_numpy.shape[0], self.stride):
                     meta = {
                         'id': num,
                         'image_file': input_file,
@@ -90,7 +92,9 @@ class RealFlareDataset(FlareDataset):
                         'image': input_piece_path,
                         'label': label_piece_path,
                         'location': (top, left),
-                        'stride': self.stride
+                        'stride': self.stride,
+                        'height': height,
+                        'width': width
                     }
 
                     db.append({
