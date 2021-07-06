@@ -123,7 +123,6 @@ def main():
     for epoch in range(start_epoch, end_epoch):
         print('Epoch: {}'.format(epoch))
 
-        # lr_scheduler.step()
         train(config, model, optimizer, train_loader, epoch, final_output_dir, writer_dict)
         precision = validate(config, model, test_loader, final_output_dir)
 

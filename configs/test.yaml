@@ -51,6 +51,8 @@ TEST:
   STATE: 'best'
   FLIP_TEST: False
   POST_PROCESS: False
+  MAX_HEIGHT: 3200
+  MAX_WIDTH: 4200
 
 # debug
 DEBUG:

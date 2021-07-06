@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from core.overlap import PatchOverlap
 
 
 class AntiFlareNet(nn.Module):
@@ -13,7 +14,6 @@ class AntiFlareNet(nn.Module):
         self.is_train = is_train
         if is_train:
             self.criterion_pixelwise = torch.nn.L1Loss()
-
         self._initialize_weights()
 
     def forward(self, x, y=None):

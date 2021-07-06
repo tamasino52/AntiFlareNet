@@ -68,10 +68,10 @@ class RealFlareDataset(FlareDataset):
                 logger.info('Warnning : label image size is modified to input image')
                 dim = (input_numpy.shape[1], input_numpy.shape[0])
                 label_numpy = cv2.resize(label_numpy, dim, interpolation = cv2.INTER_AREA)
-            height, width = input_numpy.shape[1], input_numpy.shape[0]
+            height, width = input_numpy.shape[0], input_numpy.shape[1]
 
-            np.pad(input_numpy, self.padding, 'constant', constant_values=0)
-            np.pad(label_numpy, self.padding, 'constant', constant_values=0)
+            input_numpy = np.pad(input_numpy, self.padding, 'constant', constant_values=0)
+            label_numpy = np.pad(label_numpy, self.padding, 'constant', constant_values=0)
 
             input_piece_path = f'{input_path}/id_i{num}.npy'
             label_piece_path = f'{label_path}/id_l{num}.npy'
@@ -82,8 +82,8 @@ class RealFlareDataset(FlareDataset):
                 np.save(label_piece_path, label_numpy)
 
             # 영상을 Stride 단위로 쪼개서 각 패치 정보를 DB에 저장
-            for top in range(0, input_numpy.shape[1], self.stride):
-                for left in range(0, input_numpy.shape[0], self.stride):
+            for top in range(0, input_numpy.shape[0], self.stride):
+                for left in range(0, input_numpy.shape[1], self.stride):
                     meta = {
                         'id': num,
                         'image_file': input_file,
@@ -91,7 +91,8 @@ class RealFlareDataset(FlareDataset):
                         'is_real': True,
                         'image': input_piece_path,
                         'label': label_piece_path,
-                        'location': (top, left),
+                        'top': top,
+                        'left': left,
                         'stride': self.stride,
                         'height': height,
                         'width': width

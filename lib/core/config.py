@@ -62,11 +62,14 @@ config.TEST.BATCH_SIZE = 32
 config.TEST.STATE = 'best'
 config.TEST.FLIP_TEST = False
 config.TEST.POST_PROCESS = False
+config.TEST.MAX_HEIGHT = 3200
+config.TEST.MAX_WIDTH = 4200
 
 # debug
 config.DEBUG = edict()
 config.DEBUG.DEBUG = True
 config.DEBUG.SAVE_BATCH_IMAGES = True
+
 
 def _update_dict(k, v):
     for vk, vv in v.items():

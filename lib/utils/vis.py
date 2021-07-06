@@ -80,14 +80,27 @@ def save_pred_batch_images(input_img, pred_img, target_img, prefix, normalize=Fa
     imwrite(file_name, grid_image)
 
 
-def save_pred_image(config, img, prefix, normalize=False):
+def save_numpy_image(config, img, prefix, normalize=False):
     file_name = prefix + ".jpg"
-    stride = config.AUGMENTATION_STRIDE
-    img = img[stride:, :-stride, :]
+    if normalize:
+        img = img.clone()
+        min = float(img.min())
+        max = float(img.max())
+        img.add_(-min).div_(max - min + 1e-5)
+    imwrite(file_name, img)
+
+
+def save_torch_image(config, img, prefix, normalize=False):
+    file_name = prefix + ".jpg"
     if normalize:
         img = img.clone()
         min = float(img.min())
         max = float(img.max())
         img.add_(-min).div_(max - min + 1e-5)
 
+    img = img[i].mul(255) \
+        .clamp(0, 255) \
+        .byte() \
+        .permute(1, 2, 0) \
+        .cpu().numpy()
     imwrite(file_name, img)
