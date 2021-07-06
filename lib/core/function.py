@@ -10,7 +10,7 @@ import copy
 import math
 import torch
 import numpy as np
-from utils.vis import save_pred_batch_images, save_torch_image, save_numpy_image
+from utils.vis import save_pred_batch_images, save_numpy_image
 from core.overlap import PatchOverlap
 logger = logging.getLogger(__name__)
 
@@ -155,6 +155,20 @@ def validate(config, model, loader, output_dir):
 
                 prefix = '{}_{:08}'.format(os.path.join(output_dir, 'validation'), i)
                 save_pred_batch_images(input_img, pred_img, target_img, prefix)
+
+    # 예측 이미지 저장
+    canvas = patch_overlap.get_canvas()
+    prefix = '{}_{:08}_{}'.format(os.path.join(output_dir, 'valid'), patch_overlap.id, 'pred')
+    save_numpy_image(config, canvas, prefix)
+
+    mse = np.mean((canvas - full_label_numpy) ** 2)
+    total_mse_list.append(mse)
+
+    if mse <= np.finfo(float).eps:
+        total_psnr_list.append(100.0)
+    else:
+        psnr = 20 * math.log10(255.0 / math.sqrt(mse))
+        total_psnr_list.append(psnr)
 
     # 종합 PSNR 평가
     total_psnr = sum(total_psnr_list, 0.0) / len(total_psnr_list)

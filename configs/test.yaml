@@ -13,7 +13,6 @@ TEST_CSV: 'test.csv'
 TRAIN_INPUT_DIR: 'train_input_img'
 TRAIN_LABEL_DIR: 'train_label_img'
 TEST_INPUT_DIR: 'test_input_img'
-TEST_LABEL_DIR: 'test_label_img'
 TEST_OUTPUT_DIR: 'sample_submission'
 
 # CUDNN

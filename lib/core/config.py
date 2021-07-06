@@ -23,7 +23,6 @@ config.TEST_CSV = 'test.csv'
 config.TRAIN_INPUT_DIR = 'train_input_img'
 config.TRAIN_LABEL_DIR = 'train_label_img'
 config.TEST_INPUT_DIR = 'test_input_img'
-config.TEST_LABEL_DIR = 'test_label_img'
 config.TEST_OUTPUT_DIR = 'sample_submission'
 
 # CUDNN

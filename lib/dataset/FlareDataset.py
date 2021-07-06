@@ -13,18 +13,22 @@ import math
 
 
 class FlareDataset(Dataset):
-    def __init__(self, cfg, is_train):
+    def __init__(self, cfg, is_train, only_predict=False):
         self.cfg = cfg
         self.is_train = is_train
         self.flip = cfg.RANDOM_FLIP
+        self.only_predict = only_predict
 
         assert os.path.isfile(osp.join(cfg.DATA_DIR, cfg.TRAIN_CSV)), "can't find train csv file"
         self.csv = pd.read_csv(osp.join(cfg.DATA_DIR, cfg.TRAIN_CSV))
 
         self.input_files = \
             [osp.join(self.cfg.DATA_DIR, cfg.TRAIN_INPUT_DIR, file_name) for file_name in self.csv['input_img']]
-        self.label_files = \
-            [osp.join(self.cfg.DATA_DIR, cfg.TRAIN_LABEL_DIR, file_name) for file_name in self.csv['label_img']]
+        if not self.only_predict:
+            self.label_files = self.input_files
+        else:
+            self.label_files = \
+                [osp.join(self.cfg.DATA_DIR, cfg.TRAIN_LABEL_DIR, file_name) for file_name in self.csv['label_img']]
 
         assert len(self.input_files) == len(self.label_files), "Number of Input and Label files don't match"
 

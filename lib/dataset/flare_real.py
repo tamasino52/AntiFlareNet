@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class RealFlareDataset(FlareDataset):
-    def __init__(self, cfg, is_train):
-        super().__init__(cfg, is_train)
+    def __init__(self, cfg, is_train, only_predict=False):
+        super().__init__(cfg, is_train, only_predict)
         self.is_train = is_train
         self.cfg = cfg
         self.input_dir = osp.join(cfg.DATA_DIR, cfg.TRAIN_INPUT_DIR)
