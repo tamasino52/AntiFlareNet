@@ -81,7 +81,7 @@ def save_pred_batch_images(input_img, pred_img, target_img, prefix, normalize=Fa
 
 
 def save_numpy_image(config, img, prefix, normalize=False):
-    file_name = prefix + ".jpg"
+    file_name = prefix + ".png"
     if normalize:
         img = img.clone()
         min = float(img.min())
@@ -91,7 +91,7 @@ def save_numpy_image(config, img, prefix, normalize=False):
 
 
 def save_torch_image(config, img, prefix, normalize=False):
-    file_name = prefix + ".jpg"
+    file_name = prefix + ".png"
     if normalize:
         img = img.clone()
         min = float(img.min())
