@@ -29,14 +29,14 @@ def _window_2D(window_size, power=2):
     wind = _spline_window(window_size, power)
     wind = wind[:, np.newaxis, np.newaxis]
     wind = wind * wind.transpose(1, 0, 2)
-    return wind / 4.0
+    return wind / wind.max()
 
 
 class PatchOverlap:
     def __init__(self, cfg):
         self.cfg = cfg
         self.stride = cfg.AUGMENTATION_STRIDE
-        self.patch_size = 256
+        self.patch_size = cfg.IMAGE_SIZE
         self.window = _window_2D(self.patch_size)
         self.id = None
         self.img_height = None

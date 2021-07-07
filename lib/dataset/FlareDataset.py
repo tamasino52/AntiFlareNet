@@ -17,14 +17,13 @@ class FlareDataset(Dataset):
         self.cfg = cfg
         self.is_train = is_train
         self.flip = cfg.RANDOM_FLIP
-        self.only_predict = only_predict
 
         assert os.path.isfile(osp.join(cfg.DATA_DIR, cfg.TRAIN_CSV)), "can't find train csv file"
         self.csv = pd.read_csv(osp.join(cfg.DATA_DIR, cfg.TRAIN_CSV))
 
         self.input_files = \
             [osp.join(self.cfg.DATA_DIR, cfg.TRAIN_INPUT_DIR, file_name) for file_name in self.csv['input_img']]
-        if not self.only_predict:
+        if only_predict:
             self.label_files = self.input_files
         else:
             self.label_files = \
@@ -59,12 +58,12 @@ class FlareDataset(Dataset):
 
         top, left = db_rec['location']
         input_numpy = np.zeros([self.img_size, self.img_size, 3], np.uint8)
-        temp = full_input_numpy[top:top + self.img_size, left:left + self.img_size, :]
-        input_numpy[:temp.shape[0], :temp.shape[1], :] = temp
+        input_temp = full_input_numpy[top:top + self.img_size, left:left + self.img_size, :]
+        input_numpy[:input_temp.shape[0], :input_temp.shape[1], :] = input_temp
 
         label_numpy = np.zeros([self.img_size, self.img_size, 3], np.uint8)
-        temp = full_label_numpy[top:top + self.img_size, left:left + self.img_size, :]
-        label_numpy[:temp.shape[0], :temp.shape[1], :] = temp
+        label_temp = full_label_numpy[top:top + self.img_size, left:left + self.img_size, :]
+        label_numpy[:label_temp.shape[0], :label_temp.shape[1], :] = label_temp
 
         if input_numpy is None or label_numpy is None:
             logger.error('=> fail to read {} and {}'.format(db_rec['image'], db_rec['label']))

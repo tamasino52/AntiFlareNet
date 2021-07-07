@@ -7,3 +7,4 @@ opencv-python
 pyyaml
 easydict
 scipy
+segmentation-models-pytorch

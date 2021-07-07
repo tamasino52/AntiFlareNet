@@ -77,11 +77,14 @@ def save_pred_batch_images(input_img, pred_img, target_img, prefix, normalize=Fa
         width_end = width * 3
         grid_image[height_begin:height_end, width_begin:width_end, :] = target_np
 
+    grid_image = cv2.cvtColor(grid_image, cv2.COLOR_RGB2BGR)
+
     imwrite(file_name, grid_image)
 
 
 def save_numpy_image(config, img, prefix, normalize=False):
     file_name = prefix + ".png"
+    img = cv2.cvtColor(img.astype(np.uint8), cv2.COLOR_RGB2BGR)
     if normalize:
         img = img.clone()
         min = float(img.min())

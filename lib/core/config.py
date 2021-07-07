@@ -11,10 +11,12 @@ config = edict()
 config.OUTPUT_DIR = 'output'
 config.LOG_DIR = 'log'
 config.MODEL = 'AntiFlareNet'
+config.BACKBONE = 'u-net-resnet'
 config.GPUS = '0,1'
 config.WORKERS = 8
-config.PRINT_FREQ = 5
+config.PRINT_FREQ = 100
 config.IMAGE_SIZE = 256
+
 
 # Data directory setting
 config.DATA_DIR = 'data'
