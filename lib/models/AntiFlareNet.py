@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 from models.u_net import GeneratorUNet
 from models.u_net_resnet import ResNetUNet
+import segmentation_models_pytorch as smp
 
 
 class AntiFlareNet(nn.Module):
@@ -13,6 +14,11 @@ class AntiFlareNet(nn.Module):
             self.generator = GeneratorUNet()
         elif cfg.BACKBONE == 'u-net-resnet':
             self.generator = ResNetUNet()
+        elif cfg.BACKBONE == 'u-net++':
+            self.generator = smp.UnetPlusPlus(encoder_name='resnet34', encoder_weights='imagenet', in_channels=3, classes=3)
+        elif cfg.BACKBONE == 'deeplab-v3+':
+            self.generator = smp.DeepLabV3Plus(encoder_name='resnet34', encoder_weights='imagenet', in_channels=3, classes=3)
+
         self.criterion_pixelwise = None
         self.is_train = is_train
         if is_train:

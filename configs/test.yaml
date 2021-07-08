@@ -1,11 +1,10 @@
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
-MODEL: 'AntiFlareNet-u-net-resnet'
+MODEL: 'AntiFlareNet-u-net-plusplus'
 GPUS: '0'
 WORKERS: 4
 PRINT_FREQ: 200
-BACKBONE: 'u-net-resnet'
-IMAGE_SIZE: 224
+BACKBONE: 'u-net++'
 
 # Data directory setting
 DATA_DIR: 'data'
@@ -23,6 +22,7 @@ CUDNN:
   ENABLED: True
 
 # Dataset setting
+IMAGE_SIZE: 224
 AUGMENTATION_STRIDE: 112
 DATA_CLASS: 'real'
 RANDOM_FLIP: True
