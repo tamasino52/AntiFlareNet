@@ -1,6 +1,6 @@
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
-MODEL: 'AntiFlareNet-u-net-plusplus'
+MODEL: 'AntiFlareNet-u-net-resnet'
 GPUS: '0'
 WORKERS: 4
 PRINT_FREQ: 200
@@ -36,7 +36,7 @@ TRAIN:
   NESTEROV: False
   GAMMA1: 0.99
   GAMMA2: 0.0
-  BATCH_SIZE: 16
+  BATCH_SIZE: 32
   SHUFFLE: True
   BEGIN_EPOCH: 0
   END_EPOCH: 200
@@ -47,7 +47,7 @@ TRAIN:
 
 # Test parameter
 TEST:
-  BATCH_SIZE: 16
+  BATCH_SIZE: 32
   STATE: 'best'
   FLIP_TEST: False
   POST_PROCESS: False
@@ -57,4 +57,4 @@ TEST:
 # debug
 DEBUG:
   DEBUG: True
-  SAVE_BATCH_IMAGES: rue
+  SAVE_BATCH_IMAGES: True

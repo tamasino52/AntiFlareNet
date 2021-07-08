@@ -7,4 +7,5 @@ opencv-python
 pyyaml
 easydict
 scipy
+pandas
 segmentation-models-pytorch

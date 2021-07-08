@@ -69,7 +69,7 @@ config.TEST.MAX_WIDTH = 4200
 # debug
 config.DEBUG = edict()
 config.DEBUG.DEBUG = True
-config.DEBUG.SAVE_BATCH_IMAGES = True
+config.DEBUG.SAVE_BATCH_IMAGES = True # TODO
 
 
 def _update_dict(k, v):
