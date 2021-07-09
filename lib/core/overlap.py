@@ -35,8 +35,8 @@ def _window_2D(window_size, power=2):
 class PatchOverlap:
     def __init__(self, cfg):
         self.cfg = cfg
-        self.stride = cfg.AUGMENTATION_STRIDE
-        self.patch_size = cfg.IMAGE_SIZE
+        self.stride = cfg.STRIDE
+        self.patch_size = cfg.PATCH_SIZE
         self.window = _window_2D(self.patch_size)
         self.id = None
         self.img_height = None

@@ -24,7 +24,7 @@ from utils.utils import save_checkpoint, load_checkpoint, create_logger
 
 from core.config import config, update_config
 from core.function import train, validate
-from dataset.flare_real import RealFlareDataset
+from dataset.flare_image import RealFlareDataset
 
 
 def parse_args():

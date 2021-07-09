@@ -6,9 +6,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-import torch.utils.data
+from torch.utils.data.dataset import random_split
 import torch.utils.data.distributed
-import torchvision.transforms as transforms
+import torch.utils.data.dataset
+
 from tensorboardX import SummaryWriter
 import argparse
 import os
@@ -19,12 +20,13 @@ import torchvision
 
 import _init_paths
 import dataset
+
 from models.AntiFlareNet import AntiFlareNet
 from utils.utils import save_checkpoint, load_checkpoint, create_logger
-
 from core.config import config, update_config
 from core.function import train, validate
-from dataset.flare_real import RealFlareDataset
+from dataset.flare_image import FlareImageDataset
+from dataset.flare_patch import FlarePatchDataset
 
 
 def parse_args():
@@ -57,16 +59,13 @@ def main():
 
     # 데이터 로드
     print('=> Loading data ..')
-    train_dataset = None
-    if config.DATA_CLASS == 'real':
-        train_dataset = RealFlareDataset(config, is_train=True)
-    elif config.DATA_CLASS == 'synthetic':
-        # TODO
-        raise NotImplementedError
-    elif config.DATA_CLASS == 'mix':
-        raise NotImplementedError
-    else:
-        assert "Unknown data class error. Set DATA_CLASS of configs to 'real' or 'synthetic' or 'mix'."
+    total_dataset = FlareImageDataset(config, is_train=True)
+    num_data = total_dataset.__len__()
+    num_valid = int(num_data * config.VALIDATION_RATIO)
+    num_train = num_data - num_valid
+
+    train_dataset, valid_dataset = random_split(total_dataset, [num_train, num_valid])
+    #test_dataset = FlareImageDataset(config, is_train=False)
 
     gpus = [int(i) for i in config.GPUS.split(',')]
 
@@ -77,16 +76,23 @@ def main():
         num_workers=config.WORKERS,
         pin_memory=True)
 
-    test_dataset = RealFlareDataset(config, is_train=False)
+    valid_loader = torch.utils.data.DataLoader(
+        valid_dataset,
+        batch_size=config.TEST.BATCH_SIZE * len(gpus),
+        shuffle=False,
+        num_workers=config.WORKERS,
+        pin_memory=True)
 
+    '''
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=config.TEST.BATCH_SIZE * len(gpus),
         shuffle=False,
         num_workers=config.WORKERS,
         pin_memory=True)
+    '''
 
-    logger.info('=> dataloader length : train({}), test({})'.format(train_loader.__len__(), test_loader.__len__()))
+    logger.info('=> dataloader length : train({}), validation({})'.format(train_loader.__len__(), valid_loader.__len__()))
 
     # Cudnn 설정
     cudnn.benchmark = config.CUDNN.BENCHMARK
@@ -124,7 +130,7 @@ def main():
         print('Epoch: {}'.format(epoch))
 
         train(config, model, optimizer, train_loader, epoch, final_output_dir, writer_dict)
-        precision = validate(config, model, test_loader, final_output_dir)
+        precision = validate(config, model, valid_loader, final_output_dir)
 
         if precision > best_precision:
             best_precision = precision

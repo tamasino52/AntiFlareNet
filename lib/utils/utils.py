@@ -28,11 +28,10 @@ def create_logger(cfg, cfg_name, phase='train'):
         print('=> creating {}'.format(root_output_dir))
         root_output_dir.mkdir()
 
-    dataset = cfg.DATA_CLASS
     model, _ = get_model_name(cfg)
     cfg_name = os.path.basename(cfg_name).split('.')[0]
 
-    final_output_dir = root_output_dir / dataset / model / cfg_name
+    final_output_dir = root_output_dir / model / cfg_name
 
     print('=> creating {}'.format(final_output_dir))
     final_output_dir.mkdir(parents=True, exist_ok=True)
@@ -48,7 +47,7 @@ def create_logger(cfg, cfg_name, phase='train'):
     console = logging.StreamHandler()
     logging.getLogger('').addHandler(console)
 
-    tensorboard_log_dir = tensorboard_log_dir / dataset / model / \
+    tensorboard_log_dir = tensorboard_log_dir / model / \
         (cfg_name + time_str)
     print('=> creating {}'.format(tensorboard_log_dir))
     tensorboard_log_dir.mkdir(parents=True, exist_ok=True)

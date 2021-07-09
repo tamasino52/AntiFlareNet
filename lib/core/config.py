@@ -7,16 +7,15 @@ from easydict import EasyDict as edict
 
 config = edict()
 
-# key setting
+# Key setting
 config.OUTPUT_DIR = 'output'
 config.LOG_DIR = 'log'
 config.MODEL = 'AntiFlareNet'
-config.BACKBONE = 'u-net-resnet'
-config.GPUS = '0,1'
-config.WORKERS = 8
+config.PATCH_MODEL = 'u-net'
+config.MERGE_MODEL = 'u-net'
+config.GPUS = '0'
+config.WORKERS = 4
 config.PRINT_FREQ = 100
-config.IMAGE_SIZE = 256
-
 
 # Data directory setting
 config.DATA_DIR = 'data'
@@ -34,10 +33,20 @@ config.CUDNN.DETERMINISTIC = False
 config.CUDNN.ENABLED = True
 
 # Dataset setting
-config.AUGMENTATION_STRIDE = 128
-config.DATA_CLASS = 'real'
-config.RANDOM_FLIP = True
-config.VALIDATION_RATIO = 0.2
+config.PATCH_SIZE = 256
+config.STRIDE = 128
+config.VALIDATION_RATIO = 0.2 # TODO
+
+# Data augmentation for Patch Model
+config.AUGMENTATION = edict()
+config.AUGMENTATION.RANDOM_HORIZONTAL_FLIP = True
+config.AUGMENTATION.RANDOM_VERTICAL_FLIP = True
+config.AUGMENTATION.RANDOM_ROTATION = 0.3
+config.AUGMENTATION.RANDOM_RESIZED_CROP = True
+config.AUGMENTATION.RANDOM_SCALE = 4.0
+
+# Merge model setting
+config.MULTI_SCALE = [1.0, 2.0, 4.0]
 
 # Training parameter
 config.TRAIN = edict()
@@ -110,9 +119,9 @@ def gen_config(config_file):
 def get_model_name(cfg):
     name = '{model}'.format(
         model=cfg.MODEL)
-    full_name = '{height}x{width}_{name}'.format(
-        height=cfg.IMAGE_SIZE,
-        width=cfg.IMAGE_SIZE,
+    full_name = '{patch_model}x{merge_model}_{name}'.format(
+        patch_model=cfg.PATCH_MODEL,
+        merge_model=cfg.MERGE_MODEL,
         name=name)
 
     return name, full_name

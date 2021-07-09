@@ -1,10 +1,12 @@
+# Key setting
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
-MODEL: 'AntiFlareNet-u-net-resnet'
+MODEL: 'AntiFlareNet'
+PATCH_MODEL: 'u-net-resnet'
+MERGE_MODEL: 'u-net'
 GPUS: '0'
 WORKERS: 4
-PRINT_FREQ: 200
-BACKBONE: 'u-net++'
+PRINT_FREQ: 20
 
 # Data directory setting
 DATA_DIR: 'data'
@@ -22,11 +24,20 @@ CUDNN:
   ENABLED: True
 
 # Dataset setting
-IMAGE_SIZE: 224
-AUGMENTATION_STRIDE: 112
-DATA_CLASS: 'real'
-RANDOM_FLIP: True
+PATCH_SIZE: 256
+STRIDE: 64
 VALIDATION_RATIO: 0.2
+
+# Data augmentation for Patch Model
+AUGMENTATION:
+  RANDOM_HORIZONTAL_FLIP: True
+  RANDOM_VERTICAL_FLIP: True
+  RANDOM_ROTATION: 0.1
+  RANDOM_RESIZED_CROP: True
+  RANDOM_SCALE: 4.0
+
+# Merge model setting
+MULTI_SCALE: [1.0, 2.0, 4.0]
 
 # Training parameter
 TRAIN:
@@ -36,7 +47,7 @@ TRAIN:
   NESTEROV: False
   GAMMA1: 0.99
   GAMMA2: 0.0
-  BATCH_SIZE: 32
+  BATCH_SIZE: 1
   SHUFFLE: True
   BEGIN_EPOCH: 0
   END_EPOCH: 200
@@ -47,7 +58,7 @@ TRAIN:
 
 # Test parameter
 TEST:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 1
   STATE: 'best'
   FLIP_TEST: False
   POST_PROCESS: False
