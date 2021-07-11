@@ -27,6 +27,7 @@ from core.config import config, update_config
 from core.function import train, validate
 from dataset.flare_image import FlareImageDataset
 from dataset.flare_patch import FlarePatchDataset
+from models.patch_flare_net import PatchFlareNet
 
 
 def parse_args():
@@ -59,25 +60,31 @@ def main():
 
     # 데이터 로드
     print('=> Loading data ..')
-    total_dataset = FlareImageDataset(config, is_train=True)
-    num_data = total_dataset.__len__()
+    image_dataset = FlareImageDataset(config, is_train=True)
+    num_data = image_dataset.__len__()
     num_valid = int(num_data * config.VALIDATION_RATIO)
     num_train = num_data - num_valid
 
-    train_dataset, valid_dataset = random_split(total_dataset, [num_train, num_valid])
+    train_image_dataset, valid_image_dataset = random_split(image_dataset, [num_train, num_valid])
     #test_dataset = FlareImageDataset(config, is_train=False)
+
+    patch_dataset = FlarePatchDataset(config, is_train=True)
+    num_data = patch_dataset.__len__()
+    num_valid = int(num_data * config.VALIDATION_RATIO)
+    num_train = num_data - num_valid
+    train_patch_dataset, valid_patch_dataset = random_split(patch_dataset, [num_train, num_valid])
 
     gpus = [int(i) for i in config.GPUS.split(',')]
 
     train_loader = torch.utils.data.DataLoader(
-        train_dataset,
+        train_patch_dataset,
         batch_size=config.TRAIN.BATCH_SIZE * len(gpus),
         shuffle=config.TRAIN.SHUFFLE,
         num_workers=config.WORKERS,
         pin_memory=True)
 
     valid_loader = torch.utils.data.DataLoader(
-        valid_dataset,
+        valid_patch_dataset,
         batch_size=config.TEST.BATCH_SIZE * len(gpus),
         shuffle=False,
         num_workers=config.WORKERS,
@@ -102,7 +109,8 @@ def main():
 
     # 모델 생성
     print('=> Constructing models ..')
-    model = AntiFlareNet(config, is_train=True)
+    #model = AntiFlareNet(config, is_train=True)
+    model = PatchFlareNet(config)
 
     # 모델 병렬화
     with torch.no_grad():

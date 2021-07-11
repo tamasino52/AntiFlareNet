@@ -9,7 +9,8 @@ import cv2
 import logging
 import numpy as np
 import torchvision.transforms as transforms
-
+import random
+import torchvision.transforms.functional as TF
 logger = logging.getLogger(__name__)
 
 
@@ -22,47 +23,42 @@ class FlarePatchDataset(FlareDataset):
         self.patch_size = cfg.PATCH_SIZE
         self.stride = cfg.STRIDE
 
-        if is_train:
-            self.db_path = cfg.DATA_DIR + '/train_patch_db.pkl'
-        else:
-            self.db_path = cfg.DATA_DIR + '/valid_patch_db.pkl'
-
-        transform_list = []
-        aug = cfg.AUGMENTATION
-
-        # 정규 변환
-        transform_list.append(transforms.ToTensor())
-        transform_list.append(
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225],
-            ))
-
-        if is_train:
-            # 상화 좌우 반전
-            if aug.RANDOM_HORIZONTAL_FLIP:
-                transform_list.append(transforms.RandomHorizontalFlip())
-            if aug.RANDOM_VERTICAL_FLIP:
-                transform_list.append(transforms.RandomVerticalFlip())
-            # 회전 변환
-            transform_list.append(transforms.RandomRotation(degrees=aug.RANDOM_ROTATION))
-
-        # 랜덤 크롭
-        if aug.RANDOM_RESIZED_CROP:
-            transform_list.append(
-                transforms.RandomResizedCrop(
-                    size=self.patch_size,
-                    scale=(1.0, 1./aug.RANDOM_SCALE),
-                    ratio=(1., 1.)
-                ))
-        else:
-            transform_list.append(
-                transforms.RandomCrop(self.patch_size)
-            )
-
-        self.transform = transforms.Compose(transform_list)
         self.db = self._get_db()
         self.db_size = len(self.db)
+
+    def transform(self, input, label):
+        aug = self.cfg.AUGMENTATION
+        # TODO : Random Rotation
+
+        # to PIL
+        input = TF.to_pil_image(input)
+        label = TF.to_pil_image(label)
+
+        # Random crop
+        crop = transforms.RandomResizedCrop(self.patch_size)
+        params = crop.get_params(input, scale=(1./aug.RANDOM_SCALE, 1.0), ratio=(1.0, 1.0))
+        input = TF.resized_crop(input, *params, self.patch_size)
+        label = TF.resized_crop(label, *params, self.patch_size)
+
+        # Random horizontal flipping
+        if aug.RANDOM_HORIZONTAL_FLIP and random.random() > 0.5:
+            input = TF.hflip(input)
+            label = TF.hflip(label)
+
+        # Random vertical flipping
+        if aug.RANDOM_VERTICAL_FLIP and random.random() > 0.5:
+            input = TF.vflip(input)
+            label = TF.vflip(label)
+
+        # Transform to tensor
+        input = TF.pil_to_tensor(input) / 255.
+        label = TF.pil_to_tensor(label) / 255.
+
+        # Normalize
+        #input = TF.normalize(input, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        #label = TF.normalize(label, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+        return input, label
 
     def _get_db(self):
         return super()._get_db()
@@ -71,8 +67,7 @@ class FlarePatchDataset(FlareDataset):
         input_np, label_np, meta = super().__getitem__(idx)
 
         # 이미지 변형
-        input_torch = self.transform(input_np)
-        label_torch = self.transform(label_np)
+        input_torch, label_torch = self.transform(input_np, label_np)
 
         return input_torch, label_torch, meta
 

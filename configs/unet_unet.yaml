@@ -2,11 +2,11 @@
 OUTPUT_DIR: 'output'
 LOG_DIR: 'log'
 MODEL: 'AntiFlareNet'
-PATCH_MODEL: 'u-net-resnet'
+PATCH_MODEL: 'u-net'
 MERGE_MODEL: 'u-net'
 GPUS: '0'
 WORKERS: 4
-PRINT_FREQ: 20
+PRINT_FREQ: 100
 
 # Data directory setting
 DATA_DIR: 'data'
@@ -33,7 +33,6 @@ AUGMENTATION:
   RANDOM_HORIZONTAL_FLIP: True
   RANDOM_VERTICAL_FLIP: True
   RANDOM_ROTATION: 0.1
-  RANDOM_RESIZED_CROP: True
   RANDOM_SCALE: 4.0
 
 # Merge model setting
@@ -47,10 +46,10 @@ TRAIN:
   NESTEROV: False
   GAMMA1: 0.99
   GAMMA2: 0.0
-  BATCH_SIZE: 1
+  BATCH_SIZE: 128
   SHUFFLE: True
   BEGIN_EPOCH: 0
-  END_EPOCH: 200
+  END_EPOCH: 10000
   RESUME: True
   LR: 0.001
   LR_STEP: [90, 110]
@@ -58,7 +57,7 @@ TRAIN:
 
 # Test parameter
 TEST:
-  BATCH_SIZE: 1
+  BATCH_SIZE: 128
   STATE: 'best'
   FLIP_TEST: False
   POST_PROCESS: False
