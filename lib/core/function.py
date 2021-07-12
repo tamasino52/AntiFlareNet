@@ -10,7 +10,7 @@ import copy
 import math
 import torch
 import numpy as np
-from utils.vis import save_pred_batch_images, save_numpy_image
+from utils.vis import save_pred_batch_images
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +50,11 @@ def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
                   'Data: {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
                   'Loss: {loss.val:.6f} ({loss.avg:.6f})\t' \
                   'Memory {memory:.1f}'.format(
-                epoch, i, len(loader),
-                batch_time=batch_time,
-                data_time=data_time,
-                loss=losses,
-                memory=gpu_memory_usage)
+                    epoch, i, len(loader),
+                    batch_time=batch_time,
+                    data_time=data_time,
+                    loss=losses,
+                    memory=gpu_memory_usage)
             logger.info(msg)
 
             writer = writer_dict['writer']
@@ -72,7 +72,6 @@ def validate(config, model, loader, output_dir):
     model.eval()
 
     psnr_list, mse_list = [], []
-    total_psnr_list, total_mse_list = [], []
 
     with torch.no_grad():
 
@@ -127,9 +126,9 @@ def validate(config, model, loader, output_dir):
                       'Speed: {speed:.1f} samples/s\t' \
                       'Data: {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
                       'Memory {memory:.1f}'.format(
-                    i, len(loader), batch_time=batch_time,
-                    speed=len(input_img) * input_img[0].size(0) / batch_time.val,
-                    data_time=data_time, memory=gpu_memory_usage)
+                        i, len(loader), batch_time=batch_time,
+                        speed=len(input_img) * input_img[0].size(0) / batch_time.val,
+                        data_time=data_time, memory=gpu_memory_usage)
                 logger.info(msg)
 
                 prefix = '{}_{:08}'.format(os.path.join(output_dir, 'valid'), i)
@@ -147,7 +146,6 @@ def validate(config, model, loader, output_dir):
           'MIN_PSNR: {min_psnr:.4f}\n'.format(
         mean_psnr=total_psnr, mean_mse=total_mse, max_psnr=total_max_psnr, min_psnr=total_min_psnr,
     )
-
     '''
     # 패치 단위 PSNR 평가
     mean_psnr = sum(psnr_list, 0.0) / len(psnr_list)
@@ -158,13 +156,10 @@ def validate(config, model, loader, output_dir):
           'MSE: {mean_mse:.4f}\t' \
           'MAX_PSNR: {max_psnr:.4f}\t' \
           'MIN_PSNR: {min_psnr:.4f}'.format(
-        mean_psnr=mean_psnr, mean_mse=mean_mse, max_psnr=max_psnr, min_psnr=min_psnr,
-    )
-
-
+            mean_psnr=mean_psnr, mean_mse=mean_mse, max_psnr=max_psnr, min_psnr=min_psnr)
     logger.info(msg)
 
-    return mean_psnr #total_psnr
+    return mean_psnr
 
 
 class AverageMeter(object):

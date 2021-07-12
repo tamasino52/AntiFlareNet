@@ -6,7 +6,7 @@ PATCH_MODEL: 'u-net'
 MERGE_MODEL: 'u-net'
 GPUS: '0'
 WORKERS: 4
-PRINT_FREQ: 100
+PRINT_FREQ: 30
 
 # Data directory setting
 DATA_DIR: 'data'

@@ -14,6 +14,8 @@ from tensorboardX import SummaryWriter
 import argparse
 import os
 import pprint
+import time
+
 import logging
 import json
 import torchvision
@@ -28,6 +30,7 @@ from core.function import train, validate
 from dataset.flare_image import FlareImageDataset
 from dataset.flare_patch import FlarePatchDataset
 from models.patch_flare_net import PatchFlareNet
+from utils.vis import save_pred_batch_images, save_numpy_image
 
 
 def parse_args():
@@ -60,13 +63,6 @@ def main():
 
     # 데이터 로드
     print('=> Loading data ..')
-    image_dataset = FlareImageDataset(config, is_train=True)
-    num_data = image_dataset.__len__()
-    num_valid = int(num_data * config.VALIDATION_RATIO)
-    num_train = num_data - num_valid
-
-    train_image_dataset, valid_image_dataset = random_split(image_dataset, [num_train, num_valid])
-    #test_dataset = FlareImageDataset(config, is_train=False)
 
     patch_dataset = FlarePatchDataset(config, is_train=True)
     num_data = patch_dataset.__len__()
@@ -90,15 +86,6 @@ def main():
         num_workers=config.WORKERS,
         pin_memory=True)
 
-    '''
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset,
-        batch_size=config.TEST.BATCH_SIZE * len(gpus),
-        shuffle=False,
-        num_workers=config.WORKERS,
-        pin_memory=True)
-    '''
-    # TODO : 패치 전용 학습 함수 하나 더 만들고 학습 끝나면 알아서 전체 모델에 흡수되도록 구현
     logger.info('=> dataloader length : train({}), validation({})'.format(train_loader.__len__(), valid_loader.__len__()))
 
     # Cudnn 설정
@@ -109,7 +96,6 @@ def main():
 
     # 모델 생성
     print('=> Constructing models ..')
-    #model = AntiFlareNet(config, is_train=True)
     model = PatchFlareNet(config)
 
     # 모델 병렬화
@@ -125,7 +111,8 @@ def main():
     best_precision = 0
 
     if config.TRAIN.RESUME:
-        start_epoch, model, optimizer, best_precision = load_checkpoint(model, optimizer, final_output_dir)
+        start_epoch, model, optimizer, best_precision = \
+            load_checkpoint(model, optimizer, final_output_dir, filename='patch_checkpoint.pth.tar')
 
     writer_dict = {
         'writer': SummaryWriter(log_dir=tb_log_dir),
@@ -153,14 +140,33 @@ def main():
             'state_dict': model.module.state_dict(),
             'precision': best_precision,
             'optimizer': optimizer.state_dict(),
-        }, best_model, final_output_dir)
+        }, best_model, final_output_dir, filename='patch_checkpoint.pth.tar', model_filename='patch_model_best.pth.tar')
 
-    final_model_state_file = os.path.join(final_output_dir, 'final_state.pth.tar')
+    final_model_state_file = os.path.join(final_output_dir, 'patch_final_state.pth.tar')
     logger.info('saving final model state to {}'.format(
         final_model_state_file))
     torch.save(model.module.state_dict(), final_model_state_file)
 
     writer_dict['writer'].close()
+
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
 
 
 if __name__ == '__main__':

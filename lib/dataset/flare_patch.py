@@ -11,6 +11,11 @@ import numpy as np
 import torchvision.transforms as transforms
 import random
 import torchvision.transforms.functional as TF
+import torch
+import math
+from torch.utils.data import IterableDataset
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,9 +27,10 @@ class FlarePatchDataset(FlareDataset):
 
         self.patch_size = cfg.PATCH_SIZE
         self.stride = cfg.STRIDE
+        self.num_recrop = 30
 
         self.db = self._get_db()
-        self.db_size = len(self.db)
+        self.db_size = len(self.db) * self.num_recrop
 
     def transform(self, input, label):
         aug = self.cfg.AUGMENTATION
@@ -64,6 +70,7 @@ class FlarePatchDataset(FlareDataset):
         return super()._get_db()
 
     def __getitem__(self, idx):
+        idx = int(idx / self.num_recrop)
         input_np, label_np, meta = super().__getitem__(idx)
 
         # 이미지 변형

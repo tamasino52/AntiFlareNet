@@ -9,15 +9,18 @@ import os
 import os.path as osp
 import pandas as pd
 from tqdm import tqdm
+from torch.utils.data import IterableDataset
+from numpy.lib.stride_tricks import as_strided
 
 logger = logging.getLogger(__name__)
 
 
-class FlareDataset(Dataset):
+class FlareDataset(IterableDataset):
     def __init__(self, cfg, is_train):
         self.cfg = cfg
         self.is_train = is_train
         self.stride = cfg.STRIDE
+        self.patch_size = cfg.PATCH_SIZE
         if is_train:
             self.input_dir = osp.join(cfg.DATA_DIR, cfg.TRAIN_INPUT_DIR)
             self.label_dir = osp.join(cfg.DATA_DIR, cfg.TRAIN_LABEL_DIR)
