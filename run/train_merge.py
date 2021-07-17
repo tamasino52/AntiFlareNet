@@ -9,6 +9,8 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data.dataset import random_split
 import torch.utils.data.distributed
 import torch.utils.data.dataset
+import torchvision
+import torchvision.transforms.functional as TF
 
 from tensorboardX import SummaryWriter
 import argparse
@@ -16,17 +18,17 @@ import os
 import pprint
 import logging
 import json
-import torchvision
-
 import _init_paths
 import dataset
+from tqdm import tqdm
 
 from models.AntiFlareNet import AntiFlareNet
-from utils.utils import save_checkpoint, load_checkpoint, create_logger
+from utils.utils import save_checkpoint, load_checkpoint, create_logger, load_model_state
 from core.config import config, update_config
 from core.function import train, validate
 from dataset.flare_image import FlareImageDataset
 from dataset.flare_patch import FlarePatchDataset
+from dataset.flare_image_to_patch import FlarePatch2ImageDataset
 from models.patch_flare_net import PatchFlareNet
 
 
@@ -58,63 +60,65 @@ def main():
     logger.info(pprint.pformat(args))
     logger.info(pprint.pformat(config))
 
-    # 데이터 로드
-    print('=> Loading data ..')
-    image_dataset = FlareImageDataset(config, is_train=True)
-    num_data = image_dataset.__len__()
-    num_valid = int(num_data * config.VALIDATION_RATIO)
-    num_train = num_data - num_valid
-
-    train_image_dataset, valid_image_dataset = random_split(image_dataset, [num_train, num_valid])
-    #test_dataset = FlareImageDataset(config, is_train=False)
-
-    patch_dataset = FlarePatchDataset(config, is_train=True)
-    num_data = patch_dataset.__len__()
-    num_valid = int(num_data * config.VALIDATION_RATIO)
-    num_train = num_data - num_valid
-    train_patch_dataset, valid_patch_dataset = random_split(patch_dataset, [num_train, num_valid])
-
-    gpus = [int(i) for i in config.GPUS.split(',')]
-
-    train_loader = torch.utils.data.DataLoader(
-        train_patch_dataset,
-        batch_size=config.TRAIN.BATCH_SIZE * len(gpus),
-        shuffle=config.TRAIN.SHUFFLE,
-        num_workers=config.WORKERS,
-        pin_memory=True)
-
-    valid_loader = torch.utils.data.DataLoader(
-        valid_patch_dataset,
-        batch_size=config.TEST.BATCH_SIZE * len(gpus),
-        shuffle=False,
-        num_workers=config.WORKERS,
-        pin_memory=True)
-
-    '''
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset,
-        batch_size=config.TEST.BATCH_SIZE * len(gpus),
-        shuffle=False,
-        num_workers=config.WORKERS,
-        pin_memory=True)
-    '''
-    # TODO : 패치 전용 학습 함수 하나 더 만들고 학습 끝나면 알아서 전체 모델에 흡수되도록 구현
-    logger.info('=> dataloader length : train({}), validation({})'.format(train_loader.__len__(), valid_loader.__len__()))
-
     # Cudnn 설정
     cudnn.benchmark = config.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = config.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = config.CUDNN.ENABLED
     torch.autograd.set_detect_anomaly(True)
 
+    # 데이터 로드
+    print('=> Loading Image data ..')
+    image_dataset = FlareImageDataset(config, is_train=True)
+
+    gpus = [int(i) for i in config.GPUS.split(',')]
+    image_loader = torch.utils.data.DataLoader(
+        image_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=config.WORKERS,
+        pin_memory=True)
+
     # 모델 생성
-    print('=> Constructing models ..')
-    #model = AntiFlareNet(config, is_train=True)
-    model = PatchFlareNet(config)
+    print('=> Constructing Patch models ..')
+    patch_model = PatchFlareNet(config)
 
     # 모델 병렬화
     with torch.no_grad():
-        model = torch.nn.DataParallel(model, device_ids=gpus).cuda()
+        patch_model = torch.nn.DataParallel(patch_model, device_ids=gpus).cuda()
+    patch_model = load_model_state(patch_model, final_output_dir, filename='patch_model_best.pth')
+
+    print('=> Converting all patches to images ..')
+
+    with torch.no_grad():
+        for i, (input_img, label_img, meta) in tqdm(enumerate(image_loader), desc='Overlapping', total=image_loader.__len__()):
+            #TODO
+            #patches = input_img.unfold(1, kernel_size, int(stride)).unfold(0, kernel_size, int(stride))  # [31, 31, 16, 16]
+            kernel_size = config.PATCH_SIZE
+            stride = config.STRIDE
+            input_img = input_img.squeeze()
+
+            patches = input_img.unfold(1, kernel_size, kernel_size-stride).unfold(2, kernel_size, kernel_size-stride)
+            shape = patches.shape
+
+            # 예측
+            pred_img, _ = patch_model(input_img)
+
+            pred = pred_img.detach().cpu().numpy()
+            target = target_img.detach().cpu().numpy()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # 옵티마이저 설정
     model, optimizer = get_optimizer(model)

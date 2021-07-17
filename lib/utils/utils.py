@@ -74,12 +74,10 @@ def get_optimizer(cfg, model):
     return optimizer
 
 
-def load_model_state(model, output_dir, epoch):
-    file = os.path.join(output_dir, 'checkpoint_3d_epoch'+str(epoch)+'.pth.tar')
+def load_model_state(model, output_dir, filename):
+    file = os.path.join(output_dir, filename)
     if os.path.isfile(file):
         model.module.load_state_dict(torch.load(file))
-        print('=> load models state {} (epoch {})'
-              .format(file, epoch))
         return model
     else:
         print('=> no checkpoint found at {}'.format(file))

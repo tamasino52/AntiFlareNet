@@ -42,12 +42,14 @@ class PatchOverlap:
         self.img_height = None
         self.img_width = None
         self.canvas = None
+        self.scale = None
 
-    def identify(self, id):
-        return self.id == id
+    def identify(self, id, scale):
+        return self.id == id and self.scale == scale
 
-    def initialize(self, id, img_height, img_width):
+    def initialize(self, id, scale, img_height, img_width):
         self.id = id
+        self.scale = scale
         self.img_height = img_height
         self.img_width = img_width
         self.canvas = np.zeros((self.cfg.TEST.MAX_HEIGHT, self.cfg.TEST.MAX_WIDTH, 3), dtype=np.float_)

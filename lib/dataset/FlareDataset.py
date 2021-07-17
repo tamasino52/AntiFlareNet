@@ -9,13 +9,12 @@ import os
 import os.path as osp
 import pandas as pd
 from tqdm import tqdm
-from torch.utils.data import IterableDataset
-from numpy.lib.stride_tricks import as_strided
+
 
 logger = logging.getLogger(__name__)
 
 
-class FlareDataset(IterableDataset):
+class FlareDataset(Dataset):
     def __init__(self, cfg, is_train):
         self.cfg = cfg
         self.is_train = is_train

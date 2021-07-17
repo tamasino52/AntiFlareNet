@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 import pickle
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 
 logger = logging.getLogger(__name__)
 
@@ -21,30 +22,27 @@ class FlareImageDataset(FlareDataset):
         self.is_train = is_train
         self.cfg = cfg
         self.multi_scale = cfg.MULTI_SCALE
+        self.patch_size = cfg.PATCH_SIZE
+        self.stride = cfg.STRIDE
 
-        transform_list = []
-        aug = cfg.AUGMENTATION
-        # TODO : 랜덤 변환의 경우 시드값 일치 X 다른 방법 필요
-        # 정규 변환
-        transform_list.append(transforms.ToTensor())
-        transform_list.append(
-            transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225],
-            ))
-
-        if is_train:
-            # 상화 좌우 반전
-            if aug.RANDOM_HORIZONTAL_FLIP:
-                transform_list.append(transforms.RandomHorizontalFlip())
-            if aug.RANDOM_VERTICAL_FLIP:
-                transform_list.append(transforms.RandomVerticalFlip())
-            # 회전 변환
-            transform_list.append(transforms.RandomRotation(degrees=aug.RANDOM_ROTATION))
-
-        self.transform = transforms.Compose(transform_list)
         self.db = self._get_db()
         self.db_size = len(self.db)
+
+    def transform(self, input, label=None):
+
+        # to PIL
+        input = TF.to_pil_image(input)
+        if label is not None:
+            label = TF.to_pil_image(label)
+
+        # Transform to tensor
+        input = TF.pil_to_tensor(input) / 255.
+        if label is not None:
+            label = TF.pil_to_tensor(label) / 255.
+        if label is not None:
+            return input, label
+        else:
+            return input
 
     def _get_db(self):
         return super()._get_db()
@@ -54,8 +52,7 @@ class FlareImageDataset(FlareDataset):
             input_np, label_np, meta = super().__getitem__(idx)
 
             # 이미지 변형
-            input_torch = self.transform(input_np)
-            label_torch = self.transform(label_np)
+            input_torch, label_torch = self.transform(input_np, label_np)
 
             return input_torch, label_torch, meta
         else:
