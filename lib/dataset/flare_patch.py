@@ -40,6 +40,10 @@ class FlarePatchDataset(FlareDataset):
         input = TF.to_pil_image(input)
         label = TF.to_pil_image(label)
 
+        # Padding
+        input = TF.pad(input, (self.stride, self.stride, self.stride, self.stride))
+        label = TF.pad(label, (self.stride, self.stride, self.stride, self.stride))
+
         # Random crop
         crop = transforms.RandomResizedCrop(self.patch_size)
         params = crop.get_params(input, scale=(1./aug.RANDOM_SCALE, 1.0), ratio=(1.0, 1.0))

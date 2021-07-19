@@ -101,8 +101,7 @@ def save_torch_image(config, img, prefix, normalize=False):
         min = float(img.min())
         max = float(img.max())
         img.add_(-min).div_(max - min + 1e-5)
-
-    img = img[i].mul(255) \
+    img = img.mul(255) \
         .clamp(0, 255) \
         .byte() \
         .permute(1, 2, 0) \

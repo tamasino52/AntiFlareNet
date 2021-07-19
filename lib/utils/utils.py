@@ -80,7 +80,7 @@ def load_model_state(model, output_dir, filename):
         model.module.load_state_dict(torch.load(file))
         return model
     else:
-        print('=> no checkpoint found at {}'.format(file))
+        print('=> no model found at {}'.format(file))
         return model
 
 

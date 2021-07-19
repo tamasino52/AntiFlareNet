@@ -35,7 +35,7 @@ config.CUDNN.ENABLED = True
 # Dataset setting
 config.PATCH_SIZE = 256
 config.STRIDE = 128
-config.VALIDATION_RATIO = 0.2 # TODO
+config.VALIDATION_RATIO = 0.2
 
 # Data augmentation for Patch Model
 config.AUGMENTATION = edict()
@@ -45,7 +45,7 @@ config.AUGMENTATION.RANDOM_ROTATION = 0.2
 config.AUGMENTATION.RANDOM_SCALE = 4.0
 
 # Merge model setting
-config.MULTI_SCALE = [1.0, 2.0, 4.0]
+config.MULTI_SCALE = [1.0, 0.5, 0.25]
 
 # Training parameter
 config.TRAIN = edict()
