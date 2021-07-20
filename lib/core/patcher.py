@@ -8,6 +8,7 @@ import sys
 import scipy.signal
 import torch
 import torchvision
+import torchvision.transforms.functional as TF
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.transforms import transforms
@@ -40,15 +41,72 @@ def _window_2D(window_size, padding, power=2):
 
 
 class Patcher:
-    def __init__(self, cfg, model):
+    def __init__(self, cfg):
         self.cfg = cfg
         self.stride = cfg.STRIDE
         self.kernel = cfg.PATCH_SIZE
         self.window = _window_2D(self.kernel, self.stride)
-        self.model = model
         self.batch_size = cfg.TEST.BATCH_SIZE
         self.unfold = nn.Unfold(self.kernel, stride=self.kernel-self.stride)
+        self.transform = None
+        self.re_transform = None
+        self.patches = None
+        self.num_patches = None
+        self.shape = None
 
+    def get_batch(self, _input, _label, scale):
+        h, w = _input.shape[2:]
+        self.window = self.window.to(_input.device)
+
+        self.patches = torch.zeros_like(_input)
+
+        self.transform = transforms.Compose([
+            transforms.Resize((int(h * scale), int(w * scale))),
+            transforms.Pad(self.kernel)
+        ])
+
+        self.re_transform = transforms.Compose([
+            transforms.CenterCrop((int(h * scale), int(w * scale))),
+            transforms.Resize((h, w))
+        ])
+
+        input = self.transform(_input)
+        label = self.transform(_label)
+        b, c, h, w = input.shape
+        self.shape = (h, w)
+
+        # 이미지 분해
+        input_patch = self.unfold(input)  # b, c, h, w -> b, c*k*k, l
+        input_patch = input_patch.view(b, c, self.kernel, self.kernel, -1)  # n, c*k*k, l -> b, c, k, k, l
+        input_patch = input_patch.permute(0, 4, 1, 2, 3).contiguous().view(-1, c, self.kernel, self.kernel)  # b*l, c, k, k
+
+        label_patch = self.unfold(label)  # b, c, h, w -> b, c*k*k, l
+        label_patch = label_patch.view(b, c, self.kernel, self.kernel, -1)  # n, c*k*k, l -> b, c, k, k, l
+        label_patch = label_patch.permute(0, 4, 1, 2, 3).contiguous().view(-1, c, self.kernel, self.kernel)  # b*l, c, k, k
+
+        # 이미지 패치를 배치 단위로 쪼개서 예측
+        self.num_patches = input_patch.shape[0]
+        for batch in range(0, self.num_patches, self.batch_size):
+            yield input_patch[batch:batch + self.batch_size], label_patch[batch:batch + self.batch_size]
+
+    def merge_batch(self, input_batch):
+        for batch in range(0, self.num_patches, self.batch_size):
+            self.patches[batch:batch + self.batch_size] = input_batch * self.window
+            yield
+
+    def get_image(self):
+        self.patches = self.patches.view(1, self.num_patches, 3, self.kernel, self.kernel)  # b*l, c, k, k -> b, l, c, k, k
+        self.patches = self.patches.permute(0, 2, 3, 4, 1).contiguous().view(1, 3 * self.kernel * self.kernel, self.num_patches)  # b, c*k*k, l
+
+        # 패치 재조립
+        image = F.fold(self.patches, self.shape, self.kernel, stride=self.kernel - self.stride)  # b, c*k*k, l -> b, c, k, k
+
+        # 패딩 제거
+        image = self.re_transform(image)
+
+        return image
+
+'''
     def predict(self, img, scale):
         b, c, h, w = img.shape
         assert b == 1, 'Image Batch size is not 1'
@@ -87,3 +145,4 @@ class Patcher:
         scaled_img = re_transform(scaled_img)
 
         return scaled_img
+'''
