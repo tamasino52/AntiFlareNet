@@ -5,13 +5,16 @@ from __future__ import print_function
 import numpy as np
 from easydict import EasyDict as edict
 import sys
+import os
 import scipy.signal
 import torch
+import math
 import torchvision
 import torchvision.transforms.functional as TF
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.transforms import transforms
+from utils.vis import save_pred_batch_images
 
 
 def _spline_window(window_size, power=2):
@@ -53,16 +56,18 @@ class Patcher:
         self.patches = None
         self.num_patches = None
         self.shape = None
+        self.batch_start = 0
+
+    def __len__(self):
+        return math.ceil(self.num_patches / self.batch_size)
 
     def get_batch(self, _input, _label, scale):
         h, w = _input.shape[2:]
         self.window = self.window.to(_input.device)
 
-        self.patches = torch.zeros_like(_input)
-
         self.transform = transforms.Compose([
             transforms.Resize((int(h * scale), int(w * scale))),
-            transforms.Pad(self.kernel)
+            transforms.Pad(self.kernel - self.stride)
         ])
 
         self.re_transform = transforms.Compose([
@@ -84,15 +89,16 @@ class Patcher:
         label_patch = label_patch.view(b, c, self.kernel, self.kernel, -1)  # n, c*k*k, l -> b, c, k, k, l
         label_patch = label_patch.permute(0, 4, 1, 2, 3).contiguous().view(-1, c, self.kernel, self.kernel)  # b*l, c, k, k
 
+        self.patches = torch.zeros_like(input_patch)
+
         # 이미지 패치를 배치 단위로 쪼개서 예측
         self.num_patches = input_patch.shape[0]
         for batch in range(0, self.num_patches, self.batch_size):
+            self.batch_start = batch
             yield input_patch[batch:batch + self.batch_size], label_patch[batch:batch + self.batch_size]
 
     def merge_batch(self, input_batch):
-        for batch in range(0, self.num_patches, self.batch_size):
-            self.patches[batch:batch + self.batch_size] = input_batch * self.window
-            yield
+        self.patches[self.batch_start:self.batch_start + self.batch_size] = input_batch * self.window
 
     def get_image(self):
         self.patches = self.patches.view(1, self.num_patches, 3, self.kernel, self.kernel)  # b*l, c, k, k -> b, l, c, k, k
@@ -115,7 +121,7 @@ class Patcher:
 
         transform = transforms.Compose([
             transforms.Resize((int(h * scale), int(w * scale))),
-            transforms.Pad(self.stride)
+            transforms.Pad(self.kernel)
         ])
 
         re_transform = transforms.Compose([
@@ -132,7 +138,14 @@ class Patcher:
 
         # 이미지 패치를 배치 단위로 쪼개서 예측
         for batch in range(0, patches.shape[0], self.batch_size):
+            input = patches[batch:batch + self.batch_size].clone()
             patches[batch:batch + self.batch_size] = self.model(patches[batch:batch + self.batch_size])
+            # debug
+            prefix = '{}_{:08}'.format(os.path.join('C:\\repo\\AntiFlareNet\\output\\AntiFlareNet\\unet_unet\\merge_img', 'train'), 0)
+
+            save_pred_batch_images(input, patches[batch:batch + self.batch_size], input, prefix)
+
+            # end
             patches[batch:batch + self.batch_size] = patches[batch:batch + self.batch_size] * self.window
 
         patches = patches.view(b, -1, c, self.kernel, self.kernel)  # b*l, c, k, k -> b, l, c, k, k

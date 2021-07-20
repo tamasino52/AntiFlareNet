@@ -64,24 +64,24 @@ def main():
     # 데이터 로드
     print('=> Loading data ..')
 
-    patch_dataset = FlarePatchDataset(config, is_train=True)
-    num_data = patch_dataset.__len__()
+    dataset = FlareImageDataset(config, is_train=True)
+    num_data = dataset.__len__()
     num_valid = int(num_data * config.VALIDATION_RATIO)
     num_train = num_data - num_valid
-    train_patch_dataset, valid_patch_dataset = random_split(patch_dataset, [num_train, num_valid])
+    train_dataset, valid_dataset = random_split(dataset, [num_train, num_valid])
 
     gpus = [int(i) for i in config.GPUS.split(',')]
 
     train_loader = torch.utils.data.DataLoader(
-        train_patch_dataset,
-        batch_size=config.TRAIN.BATCH_SIZE * len(gpus),
+        train_dataset,
+        batch_size=1, #config.TRAIN.BATCH_SIZE * len(gpus),
         shuffle=config.TRAIN.SHUFFLE,
         num_workers=config.WORKERS,
         pin_memory=True)
 
     valid_loader = torch.utils.data.DataLoader(
-        valid_patch_dataset,
-        batch_size=config.TEST.BATCH_SIZE * len(gpus),
+        valid_dataset,
+        batch_size=1, #config.TEST.BATCH_SIZE * len(gpus),
         shuffle=False,
         num_workers=config.WORKERS,
         pin_memory=True)

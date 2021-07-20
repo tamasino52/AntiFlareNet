@@ -25,7 +25,7 @@ CUDNN:
 
 # Dataset setting
 PATCH_SIZE: 256
-STRIDE: 64
+STRIDE: 128
 VALIDATION_RATIO: 0.2
 
 # Data augmentation for Patch Model

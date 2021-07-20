@@ -11,6 +11,7 @@ import math
 import torch
 import numpy as np
 from utils.vis import save_pred_batch_images
+from core.patcher import Patcher
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +22,12 @@ def train(config, model, optimizer, loader, epoch, output_dir, writer_dict):
     losses = AverageMeter()
 
     model.train()
-
     end = time.time()
     for i, (input_img, target_img, meta) in enumerate(loader):
 
         data_time.update(time.time() - end)
         with torch.autograd.set_detect_anomaly(True):
+
             # 예측
             pred_img, loss = model(input_img, target_img)
 

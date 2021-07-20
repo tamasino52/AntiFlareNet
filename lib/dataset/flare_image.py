@@ -29,17 +29,9 @@ class FlareImageDataset(FlareDataset):
         self.db_size = len(self.db)
 
     def transform(self, input, label=None):
-
-        # to PIL
-        input = TF.to_pil_image(input)
+        input = TF.to_tensor(input)
         if label is not None:
-            label = TF.to_pil_image(label)
-
-        # Transform to tensor
-        input = TF.pil_to_tensor(input) / 255.
-        if label is not None:
-            label = TF.pil_to_tensor(label) / 255.
-        if label is not None:
+            label = TF.to_tensor(label)
             return input, label
         else:
             return input

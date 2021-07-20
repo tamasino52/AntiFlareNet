@@ -4,7 +4,6 @@ import torch
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 from models.u_net import GeneratorUNet
-from models.u_net_resnet import ResNetUNet
 import segmentation_models_pytorch as smp
 
 

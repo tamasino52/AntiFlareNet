@@ -11,7 +11,7 @@ config = edict()
 config.OUTPUT_DIR = 'output'
 config.LOG_DIR = 'log'
 config.MODEL = 'AntiFlareNet'
-config.PATCH_MODEL = 'u-net'
+config.PATCH_MODEL = 'u-net++'
 config.MERGE_MODEL = 'u-net'
 config.GPUS = '0'
 config.WORKERS = 4
@@ -34,14 +34,14 @@ config.CUDNN.ENABLED = True
 
 # Dataset setting
 config.PATCH_SIZE = 256
-config.STRIDE = 128
+config.STRIDE = 64
 config.VALIDATION_RATIO = 0.2
 
 # Data augmentation for Patch Model
 config.AUGMENTATION = edict()
 config.AUGMENTATION.RANDOM_HORIZONTAL_FLIP = True
 config.AUGMENTATION.RANDOM_VERTICAL_FLIP = True
-config.AUGMENTATION.RANDOM_ROTATION = 0.2
+config.AUGMENTATION.RANDOM_ROTATION = 0.1
 config.AUGMENTATION.RANDOM_SCALE = 4.0
 
 # Merge model setting
@@ -56,18 +56,18 @@ config.TRAIN.NESTEROV = False
 config.TRAIN.GAMMA1 = 0.99
 config.TRAIN.GAMMA2 = 0.0
 
-config.TRAIN.BATCH_SIZE = 32
+config.TRAIN.BATCH_SIZE = 16
 config.TRAIN.SHUFFLE = True
 config.TRAIN.BEGIN_EPOCH = 0
-config.TRAIN.END_EPOCH = 200
+config.TRAIN.END_EPOCH = 400000
 config.TRAIN.RESUME = True
-config.TRAIN.LR = 0.001
+config.TRAIN.LR = 0.0002
 config.TRAIN.LR_STEP = [90, 110]
 config.TRAIN.LR_FACTOR = 0.1
 
 # Test parameter
 config.TEST = edict()
-config.TEST.BATCH_SIZE = 32
+config.TEST.BATCH_SIZE = 16
 config.TEST.STATE = 'best'
 config.TEST.FLIP_TEST = False
 config.TEST.POST_PROCESS = False
@@ -77,7 +77,7 @@ config.TEST.MAX_WIDTH = 4200
 # debug
 config.DEBUG = edict()
 config.DEBUG.DEBUG = True
-config.DEBUG.SAVE_BATCH_IMAGES = True # TODO
+config.DEBUG.SAVE_BATCH_IMAGES = True
 
 
 def _update_dict(k, v):

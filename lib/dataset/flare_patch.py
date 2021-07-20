@@ -13,7 +13,6 @@ import random
 import torchvision.transforms.functional as TF
 import torch
 import math
-from torch.utils.data import IterableDataset
 
 
 logger = logging.getLogger(__name__)
@@ -25,12 +24,8 @@ class FlarePatchDataset(FlareDataset):
         self.is_train = is_train
         self.cfg = cfg
 
-        self.patch_size = cfg.PATCH_SIZE
-        self.stride = cfg.STRIDE
-        self.num_recrop = 30
-
         self.db = self._get_db()
-        self.db_size = len(self.db) * self.num_recrop
+        self.db_size = len(self.db)
 
     def transform(self, input, label):
         aug = self.cfg.AUGMENTATION
@@ -41,12 +36,12 @@ class FlarePatchDataset(FlareDataset):
         label = TF.to_pil_image(label)
 
         # Padding
-        input = TF.pad(input, (self.stride, self.stride, self.stride, self.stride))
-        label = TF.pad(label, (self.stride, self.stride, self.stride, self.stride))
+        input = TF.pad(input, [self.stride, self.stride, self.stride, self.stride])
+        label = TF.pad(label, [self.stride, self.stride, self.stride, self.stride])
 
         # Random crop
         crop = transforms.RandomResizedCrop(self.patch_size)
-        params = crop.get_params(input, scale=(1./aug.RANDOM_SCALE, 1.0), ratio=(1.0, 1.0))
+        params = crop.get_params(input, scale=(aug.RANDOM_SCALE, 1.0), ratio=(1.0, 1.0))
         input = TF.resized_crop(input, *params, self.patch_size)
         label = TF.resized_crop(label, *params, self.patch_size)
 

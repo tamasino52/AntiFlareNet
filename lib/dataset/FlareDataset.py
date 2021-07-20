@@ -20,6 +20,7 @@ class FlareDataset(Dataset):
         self.is_train = is_train
         self.stride = cfg.STRIDE
         self.patch_size = cfg.PATCH_SIZE
+
         if is_train:
             self.input_dir = osp.join(cfg.DATA_DIR, cfg.TRAIN_INPUT_DIR)
             self.label_dir = osp.join(cfg.DATA_DIR, cfg.TRAIN_LABEL_DIR)

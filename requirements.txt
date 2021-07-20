@@ -8,4 +8,4 @@ pyyaml
 easydict
 scipy
 pandas
-segmentation-models-pytorch
+git+https://github.com/katsura-jp/pytorch-cosine-annealing-with-warmup

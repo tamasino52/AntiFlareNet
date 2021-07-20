@@ -32,16 +32,13 @@ class FlareScaledImageDataset:
         self.db_size = len(self.db)
 
     def transform(self, input, label=None):
-        # to PIL
-        input = TF.to_pil_image(input)
-        if label is not None:
-            label = TF.to_pil_image(label)
+        input = TF.to_tensor(input)
+        input = TF.normalize(input, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
-        # Transform to tensor
-        input = TF.pil_to_tensor(input) / 255.
         if label is not None:
-            label = TF.pil_to_tensor(label) / 255.
-        if label is not None:
+            label = TF.to_tensor(label)
+            label = TF.normalize(label, [0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
             return input, label
         else:
             return input
@@ -95,7 +92,6 @@ class FlareScaledImageDataset:
             scaled_torch = [self.transform(item) for item in scaled_numpy]
 
             return  input_torch, scaled_torch, db_rec['meta']
-
 
     def __len__(self):
         return self.db_size

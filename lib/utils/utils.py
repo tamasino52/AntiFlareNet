@@ -84,7 +84,7 @@ def load_model_state(model, output_dir, filename):
         return model
 
 
-def load_checkpoint(model, optimizer, output_dir, filename='checkpoint.pth.tar'):
+def load_checkpoint(model, optimizer, scheduler, output_dir, filename='checkpoint.pth.tar'):
     file = os.path.join(output_dir, filename)
     if os.path.isfile(file):
         checkpoint = torch.load(file)
@@ -92,14 +92,16 @@ def load_checkpoint(model, optimizer, output_dir, filename='checkpoint.pth.tar')
         precision = checkpoint['precision'] if 'precision' in checkpoint else 0
         model.module.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
+
         print('=> load checkpoint {} (epoch {})'
               .format(file, start_epoch))
 
-        return start_epoch, model, optimizer, precision
+        return start_epoch, model, optimizer, scheduler, precision
 
     else:
         print('=> no checkpoint found at {}'.format(file))
-        return 0, model, optimizer, 0
+        return 0, model, optimizer, scheduler, 0
 
 
 def save_checkpoint(states, is_best, output_dir,
