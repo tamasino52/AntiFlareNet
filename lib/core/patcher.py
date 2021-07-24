@@ -67,7 +67,7 @@ class Patcher:
 
         self.transform = transforms.Compose([
             transforms.Resize((int(h * scale), int(w * scale))),
-            transforms.Pad(self.kernel - self.stride)
+            transforms.Pad(self.kernel, padding_mode='symmetric')
         ])
 
         self.re_transform = transforms.Compose([

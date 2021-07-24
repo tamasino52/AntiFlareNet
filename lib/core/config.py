@@ -10,12 +10,13 @@ config = edict()
 # Key setting
 config.OUTPUT_DIR = 'output'
 config.LOG_DIR = 'log'
+config.MODELS_DIR = 'models'
 config.MODEL = 'AntiFlareNet'
 config.PATCH_MODEL = 'u-net++'
 config.MERGE_MODEL = 'u-net'
 config.GPUS = '0'
 config.WORKERS = 4
-config.PRINT_FREQ = 100
+config.PRINT_FREQ = 30
 
 # Data directory setting
 config.DATA_DIR = 'data'
@@ -56,18 +57,20 @@ config.TRAIN.NESTEROV = False
 config.TRAIN.GAMMA1 = 0.99
 config.TRAIN.GAMMA2 = 0.0
 
-config.TRAIN.BATCH_SIZE = 16
+config.TRAIN.BATCH_SIZE = 2
 config.TRAIN.SHUFFLE = True
 config.TRAIN.BEGIN_EPOCH = 0
-config.TRAIN.END_EPOCH = 400000
+config.TRAIN.END_EPOCH = 3000
+config.TRAIN.WARMUP_EPOCH = 3
 config.TRAIN.RESUME = True
-config.TRAIN.LR = 0.0002
+config.TRAIN.LR = 2e-4
+config.TRAIN.LR_MIN = 1e-6
 config.TRAIN.LR_STEP = [90, 110]
 config.TRAIN.LR_FACTOR = 0.1
 
 # Test parameter
 config.TEST = edict()
-config.TEST.BATCH_SIZE = 16
+config.TEST.BATCH_SIZE = 2
 config.TEST.STATE = 'best'
 config.TEST.FLIP_TEST = False
 config.TEST.POST_PROCESS = False

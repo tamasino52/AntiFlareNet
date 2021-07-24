@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from dataset.FlareDataset import FlareDataset
 import os.path as osp
 import os
 import cv2
@@ -12,48 +11,150 @@ from tqdm import tqdm
 import pickle
 import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
+import torch
+from PIL import Image
+import random
+from torch.utils.data import Dataset
 
 logger = logging.getLogger(__name__)
 
 
-class FlareImageDataset(FlareDataset):
-    def __init__(self, cfg, is_train):
-        super().__init__(cfg, is_train)
-        self.is_train = is_train
+def is_image_file(filename):
+    return any(filename.endswith(extension) for extension in ['jpeg', 'JPEG', 'jpg', 'png', 'JPG', 'PNG', 'gif'])
+
+
+class FlareTrainDataset(Dataset):
+    def __init__(self, cfg):
         self.cfg = cfg
-        self.multi_scale = cfg.MULTI_SCALE
-        self.patch_size = cfg.PATCH_SIZE
-        self.stride = cfg.STRIDE
+        self.data_dir = os.path.join(cfg.DATA_DIR, 'train')
 
-        self.db = self._get_db()
-        self.db_size = len(self.db)
+        inp_files = sorted(os.listdir(os.path.join(self.data_dir, 'input')))
+        tar_files = sorted(os.listdir(os.path.join(self.data_dir, 'target')))
 
-    def transform(self, input, label=None):
-        input = TF.to_tensor(input)
-        if label is not None:
-            label = TF.to_tensor(label)
-            return input, label
-        else:
-            return input
+        self.inp_filenames = [os.path.join(self.data_dir, 'input', x) for x in inp_files if is_image_file(x)]
+        self.tar_filenames = [os.path.join(self.data_dir, 'target', x) for x in tar_files if is_image_file(x)]
 
-    def _get_db(self):
-        return super()._get_db()
+        self.sizex = len(self.inp_filenames)  # get the size of target
+        self.ps = cfg.PATCH_SIZE
 
-    def __getitem__(self, idx):
-        if self.is_train:
-            input_np, label_np, meta = super().__getitem__(idx)
+    def __getitem__(self, index):
+        index_ = index % self.sizex
+        ps = self.ps
 
-            # 이미지 변형
-            input_torch, label_torch = self.transform(input_np, label_np)
+        inp_path = self.inp_filenames[index_]
+        tar_path = self.tar_filenames[index_]
 
-            return input_torch, label_torch, meta
-        else:
-            input_np, meta = super().__getitem__(idx)
+        inp_img = Image.open(inp_path)
+        tar_img = Image.open(tar_path)
 
-            # 이미지 변형
-            input_torch = self.transform(input_np)
+        w, h = tar_img.size
+        inp_img = TF.resize(inp_img, [int(h/2), int(w/2)])
+        tar_img = TF.resize(tar_img, [int(h/2), int(w/2)])
 
-            return input_torch, meta
+
+        w, h = tar_img.size
+        padw = ps - w if w < ps else 0
+        padh = ps - h if h < ps else 0
+
+        # Reflect Pad in case image is smaller than patch_size
+        if padw != 0 or padh != 0:
+            inp_img = TF.pad(inp_img, (0, 0, padw, padh), padding_mode='reflect')
+            tar_img = TF.pad(tar_img, (0, 0, padw, padh), padding_mode='reflect')
+
+        aug = random.randint(0, 2)
+        if aug == 1:
+            inp_img = TF.adjust_gamma(inp_img, 1)
+            tar_img = TF.adjust_gamma(tar_img, 1)
+
+        aug = random.randint(0, 2)
+        if aug == 1:
+            sat_factor = 1 + (0.2 - 0.4 * np.random.rand())
+            inp_img = TF.adjust_saturation(inp_img, sat_factor)
+            tar_img = TF.adjust_saturation(tar_img, sat_factor)
+
+        inp_img = TF.to_tensor(inp_img)
+        tar_img = TF.to_tensor(tar_img)
+
+        hh, ww = tar_img.shape[1], tar_img.shape[2]
+
+        rr = random.randint(0, hh - ps)
+        cc = random.randint(0, ww - ps)
+        aug = random.randint(0, 8)
+
+        # Crop patch
+        inp_img = inp_img[:, rr:rr + ps, cc:cc + ps]
+        tar_img = tar_img[:, rr:rr + ps, cc:cc + ps]
+
+        # Data Augmentations
+        if aug == 1:
+            inp_img = inp_img.flip(1)
+            tar_img = tar_img.flip(1)
+        elif aug == 2:
+            inp_img = inp_img.flip(2)
+            tar_img = tar_img.flip(2)
+        elif aug == 3:
+            inp_img = torch.rot90(inp_img, dims=(1, 2))
+            tar_img = torch.rot90(tar_img, dims=(1, 2))
+        elif aug == 4:
+            inp_img = torch.rot90(inp_img, dims=(1, 2), k=2)
+            tar_img = torch.rot90(tar_img, dims=(1, 2), k=2)
+        elif aug == 5:
+            inp_img = torch.rot90(inp_img, dims=(1, 2), k=3)
+            tar_img = torch.rot90(tar_img, dims=(1, 2), k=3)
+        elif aug == 6:
+            inp_img = torch.rot90(inp_img.flip(1), dims=(1, 2))
+            tar_img = torch.rot90(tar_img.flip(1), dims=(1, 2))
+        elif aug == 7:
+            inp_img = torch.rot90(inp_img.flip(2), dims=(1, 2))
+            tar_img = torch.rot90(tar_img.flip(2), dims=(1, 2))
+
+        filename = os.path.splitext(os.path.split(tar_path)[-1])[0]
+
+        return inp_img, tar_img, filename
 
     def __len__(self):
-        return self.db_size
+        return self.sizex
+
+
+class FlareTestDataset(Dataset):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.data_dir = os.path.join(cfg.DATA_DIR, 'test')
+        inp_files = sorted(os.listdir(os.path.join(self.data_dir, 'input')))
+        self.inp_filenames = [os.path.join(self.data_dir, 'input', x) for x in inp_files if is_image_file(x)]
+        self.inp_size = len(self.inp_filenames)  # get the size of target
+
+    def __getitem__(self, index):
+
+        path_inp = self.inp_filenames[index]
+        filename = os.path.splitext(os.path.split(path_inp)[-1])[0]
+        inp = Image.open(path_inp)
+
+        inp = TF.to_tensor(inp)
+
+        return inp, filename
+
+    def __len__(self):
+        return self.inp_size
+
+
+class FlareImageDataset(Dataset):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.data_dir = os.path.join(cfg.DATA_DIR, 'train')
+        inp_files = sorted(os.listdir(os.path.join(self.data_dir, 'input')))
+        self.inp_filenames = [os.path.join(self.data_dir, 'input', x) for x in inp_files if is_image_file(x)]
+        self.inp_size = len(self.inp_filenames)  # get the size of target
+
+    def __getitem__(self, index):
+
+        path_inp = self.inp_filenames[index]
+        filename = os.path.splitext(os.path.split(path_inp)[-1])[0]
+        inp = Image.open(path_inp)
+
+        inp = TF.to_tensor(inp)
+
+        return inp, filename
+
+    def __len__(self):
+        return self.inp_size
