@@ -23,12 +23,13 @@ import time
 import math
 import random
 import cv2
+from utils.utils import AverageMeter
 
 from models.MPRNet import MPRNet
 from utils.utils import load_model_state
 from core.config import config as cfg
-from dataset.flare_image import FlareImageDataset
-from utils.vis import save_torch_image
+from dataset.flare_image import FlareImageDataset, FlareMultiScaleTrainDataset
+from utils.vis import save_pred_batch_images
 from pathlib import Path
 import torch.nn.functional as F
 from skimage import img_as_ubyte
@@ -89,6 +90,7 @@ def main():
     # Test Loop
     with torch.no_grad():
         for scale in [1, 2, 4, 8]:
+            break
             for i, (input, file) in enumerate(tqdm(train_loader, desc='scale : ' + str(scale)), 0):
                 torch.cuda.ipc_collect()
                 torch.cuda.empty_cache()
@@ -130,6 +132,189 @@ def main():
                     data_dir = os.path.join(output_dir, 's' + str(scale))
                     filepath = (os.path.join(data_dir, file[batch] + '.png'))
                     cv2.imwrite(filepath, cv2.cvtColor(pred_img, cv2.COLOR_RGB2BGR))
+
+    # 모델 생성
+    print('=> Constructing merge models ..')
+    model = seg.DeepLabV3Plus(classes=4, activation='softmax2d')
+    model.cuda()
+
+    # 옵티마이저 설정
+    model, optimizer, scheduler = get_optimizer(model)
+
+    start_epoch = cfg.TRAIN.BEGIN_EPOCH
+    end_epoch = cfg.TRAIN.END_EPOCH
+    best_precision = 0
+
+    # 이어하기 설정
+    if cfg.TRAIN.RESUME:
+        start_epoch, model, optimizer, scheduler, precision = load_checkpoint(model, optimizer, output_dir, scheduler, filename='merge_checkpoint.pth.tar')
+        print("=> Resuming Training with learning rate: {0:.6f}".format(scheduler.get_lr()[0]))
+
+    device_ids = [i for i in range(torch.cuda.device_count())]
+    model = nn.DataParallel(model, device_ids=device_ids)
+    model.train()
+
+    # 손실 정의
+    criterion = nn.MSELoss()
+
+    # 데이터셋 생성
+    print('=> Loading Merge data ..')
+    dataset = FlareMultiScaleTrainDataset(cfg)
+
+    num_data = dataset.__len__()
+    num_valid = int(num_data * cfg.VALIDATION_RATIO)
+    num_train = num_data - num_valid
+
+    train_dataset, valid_dataset = random_split(dataset, [num_train, num_valid])
+
+    # 데이터로더 적재
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=cfg.TRAIN.BATCH_SIZE,
+        shuffle=cfg.TRAIN.SHUFFLE,
+        num_workers=cfg.WORKERS,
+        drop_last=False,
+        pin_memory=True)
+
+    valid_loader = torch.utils.data.DataLoader(
+        valid_dataset,
+        batch_size=cfg.TEST.BATCH_SIZE,
+        shuffle=False,
+        num_workers=cfg.WORKERS,
+        drop_last=False,
+        pin_memory=True)
+
+    print('=> Training merge model ..')
+    print('=> Start Epoch {} End Epoch {}'.format(start_epoch, cfg.TRAIN.END_EPOCH))
+
+    for epoch in range(start_epoch, end_epoch + 1):
+        # Training Loop
+        batch_time = AverageMeter()
+        data_time = AverageMeter()
+        losses = AverageMeter()
+        model.train()
+
+        end = time.time()
+        # TODO : Flip, rotation, scale Augmentation
+        for i, (input, interim, target, file) in enumerate(train_loader):
+            optimizer.zero_grad()
+
+            input = input.cuda()
+            interim = [inr.cuda() for inr in interim]
+            target = target.cuda()
+
+            pred = model(input)
+
+            # 연산 시간 계산
+            batch_time.update(time.time() - end)
+            end = time.time()
+
+            # 손실 역전파
+            merge = 0
+            for s in range(4):
+                merge += pred[:, s].unsqueeze(1) * interim[s]
+            loss = criterion(merge, target)
+
+            losses.update(loss.item())
+            loss.backward()
+            optimizer.step()
+
+            # 학습 정보 출력
+            if i % cfg.PRINT_FREQ == 0:
+                gpu_memory_usage = torch.cuda.memory_allocated(0)
+                msg = 'Epoch: [{0}][{1}/{2}]\t' \
+                      'Time: {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t' \
+                      'Data: {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
+                      'Loss: {loss.val:.6f} ({loss.avg:.6f})\t' \
+                      'Memory: {memory:.1f}'.format(
+                        epoch, i, len(train_loader),
+                        batch_time=batch_time,
+                        data_time=data_time,
+                        loss=losses,
+                        memory=gpu_memory_usage)
+                print(msg)
+                mat = torch.ones_like(input)
+                att = []
+                for s in range(4):
+                    att.append(pred[:, s].unsqueeze(1) * mat)
+
+                # 패치 이미지 출력
+                prefix = '{}_{:08}'.format(os.path.join(output_dir, 'train'), i)
+                save_pred_batch_images(prefix, input, merge, target, *att)
+
+        # Validation Loop
+        batch_time = AverageMeter()
+        data_time = AverageMeter()
+        model.eval()
+        psnr_val_rgb = []
+        with torch.no_grad():
+            end = time.time()
+            for i, (input, interim, target, file) in enumerate(valid_loader):
+                input = input.cuda()
+                interim = [inr.cuda() for inr in interim]
+                target = target.cuda()
+
+                with torch.no_grad():
+                    pred = model(input)
+
+                merge = 0
+                for s in range(4):
+                    merge += pred[:, s].unsqueeze(1) * interim[s]
+
+                for pre, tar in zip(merge, target):
+                    psnr_val_rgb.append(torchPSNR(pre, tar))
+
+                # 연산 시간 계산
+                batch_time.update(time.time() - end)
+                end = time.time()
+
+                # 학습 정보 출력
+                if i % cfg.PRINT_FREQ == 0:
+                    gpu_memory_usage = torch.cuda.memory_allocated(0)
+                    msg = 'Test: [{0}/{1}]\t' \
+                          'Time: {batch_time.val:.3f}s ({batch_time.avg:.3f}s)\t' \
+                          'Speed: {speed:.1f} samples/s\t' \
+                          'Data: {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
+                          'Memory {memory:.1f}'.format(
+                        i, len(valid_loader), batch_time=batch_time,
+                        speed=len(input) * input[0].size(0) / batch_time.val,
+                        data_time=data_time, memory=gpu_memory_usage)
+                    print(msg)
+                    mat = torch.ones_like(input)
+                    att = []
+                    for s in range(4):
+                        att.append(pred[:, s].unsqueeze(1) * mat)
+
+                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'valid'), i)
+                    save_pred_batch_images(prefix, input, merge, target, *att)
+
+            # PSNR 평가
+            precision = torch.stack(psnr_val_rgb).mean().item()
+
+            if precision > best_precision:
+                best_precision = precision
+                best_epoch = epoch
+                best_model = True
+            else:
+                best_model = False
+            print("[epoch %d PSNR: %.4f --- best_epoch %d Best_PSNR %.4f]" % (epoch, precision, best_epoch, best_precision))
+
+            save_checkpoint({
+                'epoch': epoch,
+                'state_dict': model.module.state_dict(),
+                'precision': best_precision,
+                'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler,
+            }, best_model, output_dir,
+                filename='merge_checkpoint.pth.tar', model_filename='merge_model_best.pth.tar')
+
+            print('=> saving checkpoint to {} (Best: {})'.format(output_dir, best_model))
+
+    scheduler.step()
+
+    final_model_state_file = os.path.join(output_dir)
+    print('saving final model state to {}'.format(final_model_state_file))
+    torch.save(model.module.state_dict(), final_model_state_file)
 
 
 if __name__ == '__main__':

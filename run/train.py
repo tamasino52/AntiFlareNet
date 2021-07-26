@@ -76,7 +76,7 @@ def main():
 
     # 이어하기 설정
     if cfg.TRAIN.RESUME:
-        start_epoch, model, optimizer, scheduler, precision = load_checkpoint(model, optimizer, output_dir)
+        start_epoch, model, optimizer, scheduler, precision = load_checkpoint(model, optimizer, output_dir, scheduler)
         print("=> Resuming Training with learning rate: {0:.6f}".format(scheduler.get_lr()[0]))
 
     # 모델 병렬화
@@ -164,7 +164,7 @@ def main():
 
                 # 패치 이미지 출력
                 prefix = '{}_{:08}'.format(os.path.join(output_dir, 'train'), i)
-                save_pred_batch_images(input, pred[0], target, prefix)
+                save_pred_batch_images(prefix, input, pred[0], target)
 
         # Validation Loop
         batch_time = AverageMeter()
@@ -200,7 +200,7 @@ def main():
                         data_time=data_time, memory=gpu_memory_usage)
                     print(msg)
                     prefix = '{}_{:08}'.format(os.path.join(output_dir, 'valid'), i)
-                    save_pred_batch_images(input, pred, target, prefix)
+                    save_pred_batch_images(prefix, input, pred, target)
 
             # PSNR 평가
             precision = torch.stack(psnr_val_rgb).mean().item()

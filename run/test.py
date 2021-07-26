@@ -43,7 +43,7 @@ def main():
     # 출력 경로 설정
     this_dir = Path(os.path.dirname(__file__))
 
-    output_dir = (this_dir / '..' / cfg.OUTPUT_DIR / 's1').resolve()
+    output_dir = (this_dir / '..' / cfg.OUTPUT_DIR).resolve()
 
     # 모델 생성
     print('=> Constructing models ..')
@@ -71,7 +71,7 @@ def main():
     print('=> Testing model ..')
     ps = cfg.PATCH_SIZE
     st = cfg.STRIDE
-    scale = 4
+    scale = 2
     # Test Loop
     with torch.no_grad():
         for i, (input, file) in enumerate(tqdm(test_loader), 0):

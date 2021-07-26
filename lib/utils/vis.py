@@ -19,7 +19,7 @@ def imwrite(filename, img, params=None):
         print(e)
         return False
 
-
+'''
 def save_pred_batch_images(input_img, pred_img, target_img, prefix, normalize=False):
     file_name = prefix + ".jpg"
 
@@ -81,6 +81,36 @@ def save_pred_batch_images(input_img, pred_img, target_img, prefix, normalize=Fa
 
     grid_image = cv2.cvtColor(grid_image, cv2.COLOR_RGB2BGR)
 
+    imwrite(file_name, grid_image)
+'''
+
+
+def save_pred_batch_images(prefix, *imgs):
+    file_name = prefix + ".jpg"
+
+    num_image = len(imgs)
+    batch_size = imgs[0].size(0)
+    height = imgs[0].size(2)
+    width = imgs[0].size(3)
+
+    grid_image = np.zeros((batch_size * height, num_image * width, 3), dtype=np.uint8)
+
+    for j in range(num_image):
+        for i in range(batch_size):
+            img = imgs[j][i].mul(255) \
+                .clamp(0, 255) \
+                .byte() \
+                .permute(1, 2, 0) \
+                .cpu().numpy()
+
+            height_begin = height * i
+            height_end = height * (i + 1)
+
+            width_begin = width * j
+            width_end = width * (j + 1)
+
+            grid_image[height_begin:height_end, width_begin:width_end, :] = img
+    grid_image = cv2.cvtColor(grid_image, cv2.COLOR_RGB2BGR)
     imwrite(file_name, grid_image)
 
 

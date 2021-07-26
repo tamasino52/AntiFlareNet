@@ -158,3 +158,45 @@ class FlareImageDataset(Dataset):
 
     def __len__(self):
         return self.inp_size
+
+
+class FlareMultiScaleTrainDataset(Dataset):
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.data_dir = [os.path.join(cfg.OUTPUT_DIR, 's' + str(scale)) for scale in [1, 2, 4, 8]]
+
+        inp_files = sorted(os.listdir(os.path.join(cfg.DATA_DIR, 'train', 'input')))
+        inr_files = [sorted(os.listdir(self.data_dir[s])) for s in range(4)]
+        tar_files = sorted(os.listdir(os.path.join(cfg.DATA_DIR, 'train', 'target')))
+
+        self.inp_filenames = [os.path.join(cfg.DATA_DIR, 'train', 'input', x) for x in inp_files if is_image_file(x)]
+        self.inr_filenames = [[os.path.join(self.data_dir[s], x) for x in inr_files[s] if is_image_file(x)] for s in range(4)]
+        self.tar_filenames = [os.path.join(cfg.DATA_DIR, 'train', 'target', x) for x in tar_files if is_image_file(x)]
+        self.tar_size = len(self.tar_filenames)  # get the size of target
+
+    def __getitem__(self, index):
+
+        path_inp = self.inp_filenames[index]
+        path_inr = [self.inr_filenames[s][index] for s in range(4)]
+        path_tar = self.tar_filenames[index]
+
+        inp = Image.open(path_inp)
+        inp = TF.resize(inp, [512, 512])
+        inp = TF.to_tensor(inp)
+
+        inr = []
+        for path in path_inr:
+            inr_img = Image.open(path)
+            inr_img = TF.resize(inr_img, [512, 512])
+            inr.append(TF.to_tensor(inr_img))
+
+        tar = Image.open(path_tar)
+        tar = TF.resize(tar, [512, 512])
+        tar = TF.to_tensor(tar)
+
+        filename = os.path.splitext(os.path.split(path_inp)[-1])[0]
+
+        return inp, inr, tar, filename
+
+    def __len__(self):
+        return self.tar_size

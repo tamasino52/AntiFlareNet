@@ -111,15 +111,15 @@ def load_checkpoint(model, optimizer, output_dir, scheduler, filename='checkpoin
         precision = checkpoint['precision'] if 'precision' in checkpoint else 0
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        scheduler.load_state_dict(checkpoint['scheduler'])
+        scheduler = checkpoint['scheduler']
         print('=> load checkpoint {} (epoch {})'
               .format(file, start_epoch))
 
-        return start_epoch, model, optimizer, precision
+        return start_epoch, model, optimizer, scheduler, precision
 
     else:
         print('=> no checkpoint found at {}'.format(file))
-        return 0, model, optimizer, 0
+        return 0, model, optimizer, scheduler, 0
 
 
 def save_checkpoint(states, is_best, output_dir,
