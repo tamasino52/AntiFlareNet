@@ -36,7 +36,8 @@ config.CUDNN.ENABLED = True
 # Dataset setting
 config.PATCH_SIZE = 256
 config.STRIDE = 128
-config.VALIDATION_RATIO = 0.2
+config.VALIDATION_RATIO = 0.1
+config.PREPREDICTION = False
 
 # Data augmentation for Patch Model
 config.AUGMENTATION = edict()

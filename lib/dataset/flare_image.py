@@ -180,18 +180,35 @@ class FlareMultiScaleTrainDataset(Dataset):
         path_inr = [self.inr_filenames[s][index] for s in range(4)]
         path_tar = self.tar_filenames[index]
 
+        vflip = random.random() > 0.5
+        hflip = random.random() > 0.5
+
         inp = Image.open(path_inp)
         inp = TF.resize(inp, [512, 512])
+        if vflip:
+            inp = TF.vflip(inp)
+        if hflip:
+            inp = TF.hflip(inp)
         inp = TF.to_tensor(inp)
 
         inr = []
         for path in path_inr:
             inr_img = Image.open(path)
             inr_img = TF.resize(inr_img, [512, 512])
+            if vflip:
+                inr_img = TF.vflip(inr_img)
+            if hflip:
+                inr_img = TF.hflip(inr_img)
             inr.append(TF.to_tensor(inr_img))
 
         tar = Image.open(path_tar)
         tar = TF.resize(tar, [512, 512])
+
+        if vflip:
+            tar = TF.vflip(tar)
+        if hflip:
+            tar = TF.hflip(tar)
+
         tar = TF.to_tensor(tar)
 
         filename = os.path.splitext(os.path.split(path_inp)[-1])[0]
