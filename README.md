@@ -39,16 +39,17 @@ python run/test_merge.py
 ```
 
 # Figure
-Input | Prediction | Target | 1.0 scale attention | 0.5 scale attention | 0.25 scale attention | 0.125 scale attention |
-<img src="/figure/figure (1).jpg"><br>
-<img src="/figure/figure (2).jpg"><br>
-<img src="/figure/figure (3).jpg"><br>
-<img src="/figure/figure (4).jpg"><br>
-<img src="/figure/figure (5).jpg"><br>
-<img src="/figure/figure (6).jpg"><br>
-<img src="/figure/figure (7).jpg"><br>
-<img src="/figure/figure (8).jpg"><br>
-<img src="/figure/figure (9).jpg"><br>
-<img src="/figure/figure (10).jpg"><br>
-<img src="/figure/figure (11).jpg"><br>
-<img src="/figure/figure (12).jpg">
+Input | Prediction | Target | 1.0 scale attention | 0.5 scale attention | 0.25 scale attention | 0.125 scale attention
+<br>
+<img src="./figure/figure (1).jpg"><br>
+<img src="./figure/figure (2).jpg"><br>
+<img src="./figure/figure (3).jpg"><br>
+<img src="./figure/figure (4).jpg"><br>
+<img src="./figure/figure (5).jpg"><br>
+<img src="./figure/figure (6).jpg"><br>
+<img src="./figure/figure (7).jpg"><br>
+<img src="./figure/figure (8).jpg"><br>
+<img src="./figure/figure (9).jpg"><br>
+<img src="./figure/figure (10).jpg"><br>
+<img src="./figure/figure (11).jpg"><br>
+<img src="./figure/figure (12).jpg">
