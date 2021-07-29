@@ -2,14 +2,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os.path as osp
 import os
-import cv2
 import logging
 import numpy as np
-from tqdm import tqdm
-import pickle
-import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 import torch
 from PIL import Image

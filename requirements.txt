@@ -9,3 +9,4 @@ easydict
 scipy
 pandas
 git+https://github.com/katsura-jp/pytorch-cosine-annealing-with-warmup
+segmentation_models_pytorch

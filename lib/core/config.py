@@ -12,8 +12,8 @@ config.OUTPUT_DIR = 'output'
 config.LOG_DIR = 'log'
 config.MODELS_DIR = 'models'
 config.MODEL = 'AntiFlareNet'
-config.PATCH_MODEL = 'u-net++'
-config.MERGE_MODEL = 'u-net'
+config.PATCH_MODEL = 'mprnet'
+config.MERGE_MODEL = 'deellab-v3+'
 config.GPUS = '0'
 config.WORKERS = 4
 config.PRINT_FREQ = 30
@@ -37,17 +37,7 @@ config.CUDNN.ENABLED = True
 config.PATCH_SIZE = 256
 config.STRIDE = 128
 config.VALIDATION_RATIO = 0.1
-config.PREPREDICTION = False
-
-# Data augmentation for Patch Model
-config.AUGMENTATION = edict()
-config.AUGMENTATION.RANDOM_HORIZONTAL_FLIP = True
-config.AUGMENTATION.RANDOM_VERTICAL_FLIP = True
-config.AUGMENTATION.RANDOM_ROTATION = 0.1
-config.AUGMENTATION.RANDOM_SCALE = 4.0
-
-# Merge model setting
-config.MULTI_SCALE = [1.0, 0.5, 0.25]
+config.PREPREDICTION = True
 
 # Training parameter
 config.TRAIN = edict()
@@ -75,8 +65,6 @@ config.TEST.BATCH_SIZE = 2
 config.TEST.STATE = 'best'
 config.TEST.FLIP_TEST = False
 config.TEST.POST_PROCESS = False
-config.TEST.MAX_HEIGHT = 3200
-config.TEST.MAX_WIDTH = 4200
 
 # debug
 config.DEBUG = edict()

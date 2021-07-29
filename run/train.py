@@ -8,28 +8,21 @@ import torch.utils.data.dataset
 import torchvision
 from torchvision.transforms import transforms
 import torchvision.transforms.functional as TF
-import argparse
 import os
-import pprint
-import logging
-import json
 import _init_paths
 import dataset
-from tqdm import tqdm
 import numpy as np
-import pickle
 import time
-import math
 import random
 from models.MPRNet import MPRNet
 
-from utils.utils import save_checkpoint, load_checkpoint, create_logger, load_model_state
+from utils.utils import save_checkpoint, load_checkpoint
 from core.config import config as cfg
 from dataset.flare_image import FlareTrainDataset
 from pathlib import Path
 from utils.vis import save_pred_batch_images
 from core.scheduler import GradualWarmupScheduler
-from core.metrics import torchPSNR, numpyPSNR
+from core.metrics import torchPSNR
 from core.losses import CharbonnierLoss, EdgeLoss
 from utils.utils import AverageMeter
 
@@ -163,8 +156,9 @@ def main():
                 print(msg)
 
                 # 패치 이미지 출력
-                prefix = '{}_{:08}'.format(os.path.join(output_dir, 'train'), i)
-                save_pred_batch_images(prefix, input, pred[0], target)
+                if cfg.DEBUG.SAVE_BATCH_IMAGES:
+                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'train'), i)
+                    save_pred_batch_images(prefix, input, pred[0], target)
 
         # Validation Loop
         batch_time = AverageMeter()
@@ -199,8 +193,9 @@ def main():
                         speed=len(input) * input[0].size(0) / batch_time.val,
                         data_time=data_time, memory=gpu_memory_usage)
                     print(msg)
-                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'valid'), i)
-                    save_pred_batch_images(prefix, input, pred, target)
+                    if cfg.DEBUG.SAVE_BATCH_IMAGES:
+                        prefix = '{}_{:08}'.format(os.path.join(output_dir, 'valid'), i)
+                        save_pred_batch_images(prefix, input, pred, target)
 
             # PSNR 평가
             precision = torch.stack(psnr_val_rgb).mean().item()

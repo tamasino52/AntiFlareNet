@@ -8,19 +8,11 @@ import torch.utils.data.dataset
 import torchvision
 from torchvision.transforms import transforms
 import torchvision.transforms.functional as TF
-from tensorboardX import SummaryWriter
-import argparse
 import os
-import pprint
-import logging
-import json
 import _init_paths
 import dataset
 from tqdm import tqdm
 import numpy as np
-import pickle
-import time
-import math
 import random
 import cv2
 

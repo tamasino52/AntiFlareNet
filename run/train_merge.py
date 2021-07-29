@@ -8,19 +8,12 @@ import torch.utils.data.dataset
 import torchvision
 from torchvision.transforms import transforms
 import torchvision.transforms.functional as TF
-from tensorboardX import SummaryWriter
-import argparse
 import os
-import pprint
-import logging
-import json
 import _init_paths
 import dataset
 from tqdm import tqdm
 import numpy as np
-import pickle
 import time
-import math
 import random
 import cv2
 from utils.utils import AverageMeter
@@ -239,8 +232,9 @@ def main():
                     att.append(pred[:, s].unsqueeze(1) * mat)
 
                 # 패치 이미지 출력
-                prefix = '{}_{:08}'.format(os.path.join(output_dir, 'train'), i)
-                save_pred_batch_images(prefix, input, merge, target, *att)
+                if cfg.DEBUG.SAVE_BATCH_IMAGES:
+                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'train'), i)
+                    save_pred_batch_images(prefix, input, merge, target, *att)
 
         # Validation Loop
         batch_time = AverageMeter()
@@ -285,8 +279,9 @@ def main():
                     for s in range(4):
                         att.append(pred[:, s].unsqueeze(1) * mat)
 
-                    prefix = '{}_{:08}'.format(os.path.join(output_dir, 'valid'), i)
-                    save_pred_batch_images(prefix, input, merge, target, *att)
+                    if cfg.DEBUG.SAVE_BATCH_IMAGES:
+                        prefix = '{}_{:08}'.format(os.path.join(output_dir, 'valid'), i)
+                        save_pred_batch_images(prefix, input, merge, target, *att)
 
             # PSNR 평가
             precision = torch.stack(psnr_val_rgb).mean().item()
