@@ -128,7 +128,7 @@ def main():
             merge = merge.permute(0, 2, 3, 1).detach().numpy()
 
             for batch in range(len(merge)):
-                pred_img = img_as_ubyte(merge[batch])
+                pred_img = img_as_ubyte(np.clip(merge[batch], 0, 1))
                 filepath = (os.path.join(output_dir, file[batch] + '.png'))
                 cv2.imwrite(filepath, cv2.cvtColor(pred_img, cv2.COLOR_RGB2BGR))
 
